@@ -35,27 +35,29 @@ class BimaruState:
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
-    def __init__(self, initial_board, pos_filled_row, pos_filled_column):
-        self.initial_board = initial_board
+    def __init__(self, board, pos_filled_row, pos_filled_column):
+        self.board = board
         self.pos_filled_row = pos_filled_row
         self.filled_pos_column = pos_filled_column
+        self.LEN_ROW = 10
+        self.LEN_COLUMN = 10
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        # TODO
-        pass
+        if 0 <= row <= self.LEN_ROW and  0 <= col <= self.LEN_COLUMN:
+            return str(self.board[row][col])
+        else:
+            raise ValueError #??? dont know what to raise here
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-        # TODO
-        pass
+        return (self.get_value(row + 1,col),self.get_value(row - 1, col))
 
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        # TODO
-        pass
+        return (self.get_value(row, col + 1), self.get_value(row, col - 1))
 
     @staticmethod
     def parse_instance():
@@ -68,8 +70,6 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        LEN_ROW = 10
-        LEN_COLUMN = 10
         filled_pos_row = list(sys.stdin.readline().split()[1:])
         filled_pos_column = list(sys.stdin.readline().split()[1:])
         numOfHints = int(sys.stdin.readline())
@@ -79,16 +79,16 @@ class Board:
             hint = sys.stdin.readline().split()[1:]
             hints.append(tuple(hint))
 
-        initial_board = np.full((LEN_ROW, LEN_COLUMN), ".")
+        board = np.full((10, 10), ".")
 
         for hint in hints:
             row_idx, col_idx, letter = hint
-            initial_board[int(row_idx)][int(col_idx)] = letter
+            board[int(row_idx)][int(col_idx)] = letter
 
-        return Board(initial_board, filled_pos_row, filled_pos_column)
+        return Board(board, filled_pos_row, filled_pos_column)
 
     def print(self):
-        np.savetxt(sys.stdout, self.initial_board, delimiter=' ', fmt='%s')
+        np.savetxt(sys.stdout, self.board, delimiter=' ', fmt='%s')
 
 class Bimaru(Problem):
     def __init__(self, board: Board):
@@ -126,6 +126,13 @@ class Bimaru(Problem):
 
 board = Board.parse_instance()
 board.print()
+print("\n")
+print(board.get_value(1,6))
+print("\n")
+print(board.adjacent_horizontal_values(1,5))
+print(board.adjacent_vertical_values(2,6))
+
+
 
 if __name__ == "__main__":
     # TODO:
