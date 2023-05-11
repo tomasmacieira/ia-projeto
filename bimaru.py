@@ -16,7 +16,7 @@ from search import (
     greedy_search,
     recursive_best_first_search,
 )
-
+import numpy as np
 
 class BimaruState:
     state_id = 0
@@ -34,6 +34,11 @@ class BimaruState:
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
+
+    def __init__(self, initial_board, pos_filled_row, pos_filled_column):
+        self.initial_board = initial_board
+        self.pos_filled_row = pos_filled_row
+        self.filled_pos_column = pos_filled_column
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -63,17 +68,27 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        
-        row = list(sys.stdin.readline().split()[1:])  
-        column = list(sys.stdin.readline().split()[1:])
+        LEN_ROW = 10
+        LEN_COLUMN = 10
+        filled_pos_row = list(sys.stdin.readline().split()[1:])
+        filled_pos_column = list(sys.stdin.readline().split()[1:])
         numOfHints = int(sys.stdin.readline())
         hints = []
-        for _ in range(numOfHints):
+
+        for i in range(numOfHints):
             hint = sys.stdin.readline().split()[1:]
             hints.append(tuple(hint))
 
-    # TODO: outros metodos da classe
+        initial_board = np.full((LEN_ROW, LEN_COLUMN), ".")
 
+        for hint in hints:
+            row_idx, col_idx, letter = hint
+            initial_board[int(row_idx)][int(col_idx)] = letter
+
+        return Board(initial_board, filled_pos_row, filled_pos_column)
+
+    def print(self):
+        np.savetxt(sys.stdout, self.initial_board, delimiter=' ', fmt='%s')
 
 class Bimaru(Problem):
     def __init__(self, board: Board):
@@ -109,7 +124,8 @@ class Bimaru(Problem):
 
     # TODO: outros metodos da classe
 
-Board.parse_instance()
+board = Board.parse_instance()
+board.print()
 
 if __name__ == "__main__":
     # TODO:
