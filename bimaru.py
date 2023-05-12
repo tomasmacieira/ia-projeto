@@ -52,12 +52,20 @@ class Board:
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-        return (self.get_value(row + 1,col),self.get_value(row - 1, col))
+        if row == 0:
+            return (None, self.get_value(row + 1, col))
+        elif row == 9:
+            return (self.get_value(row + 1, col), None)
+        return (self.get_value(row - 1,col),self.get_value(row + 1, col))
 
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        return (self.get_value(row, col + 1), self.get_value(row, col - 1))
+        if col == 0:
+            return (None, self.get_value(row, col + 1))
+        elif col == 9:
+            return (self.get_value(row, col - 1), None) 
+        return (self.get_value(row, col - 1), self.get_value(row, col + 1))
 
     @staticmethod
     def parse_instance():
@@ -129,8 +137,8 @@ board.print()
 print("\n")
 print(board.get_value(1,6))
 print("\n")
-print(board.adjacent_horizontal_values(1,5))
-print(board.adjacent_vertical_values(2,6))
+print(board.adjacent_horizontal_values(5,9))
+print(board.adjacent_vertical_values(0,5))
 
 
 
