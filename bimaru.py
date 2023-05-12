@@ -55,7 +55,7 @@ class Board:
         if row == 0:
             return (None, self.get_value(row + 1, col))
         elif row == 9:
-            return (self.get_value(row + 1, col), None)
+            return (self.get_value(row - 1, col), None)
         return (self.get_value(row - 1,col),self.get_value(row + 1, col))
 
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
