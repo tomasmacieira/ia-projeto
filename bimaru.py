@@ -35,17 +35,17 @@ class BimaruState:
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
-    def __init__(self, board, pos_filled_row, pos_filled_column):
+    def __init__(self, board, filled_pos_row, filled_pos_column):
         self.board = board
-        self.pos_filled_row = pos_filled_row
-        self.filled_pos_column = pos_filled_column
+        self.filled_pos_row = filled_pos_row
+        self.filled_pos_column = filled_pos_column
         self.LEN_ROW = 10
         self.LEN_COLUMN = 10
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if 0 <= row <= self.LEN_ROW and  0 <= col <= self.LEN_COLUMN:
-            if self.board[row][col] == 'x':
+            if self.board[row][col] == '-':
                 return None
             return str(self.board[row][col])
         else:
@@ -60,6 +60,15 @@ class Board:
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
         return (self.get_value(row, col - 1), self.get_value(row, col + 1))
+    
+    def fill_position(self, row, col, val):
+        """Devolve um board com um novo elemento, na posição introdu
+        zida"""
+        self.board[row-1][col-1] = val
+        if val != 'W':
+            self.filled_pos_row[row] = self.filled_pos_row[row] - 1
+            self.filled_pos_column[col] = self.filled_pos_column[col] - 1
+        return self.board 
 
     @staticmethod
     def parse_instance():
@@ -72,8 +81,8 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        filled_pos_row = list(sys.stdin.readline().split()[1:])
-        filled_pos_column = list(sys.stdin.readline().split()[1:])
+        filled_pos_row = list(map(int, sys.stdin.readline().split()[1:]))
+        filled_pos_column = list(map(int, sys.stdin.readline().split()[1:]))
         numOfHints = int(sys.stdin.readline())
         hints = []
 
@@ -81,7 +90,7 @@ class Board:
             hint = sys.stdin.readline().split()[1:]
             hints.append(tuple(hint))
 
-        board = np.full((10, 10), "x")
+        board = np.full((10, 10), "-")
 
         for hint in hints:
             row_idx, col_idx, letter = hint
@@ -95,7 +104,8 @@ class Board:
 class Bimaru(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        # TODO
+        state = BimaruState(board)
+        super().__init__(state)
         pass
 
     def actions(self, state: BimaruState):
@@ -109,14 +119,16 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        # TODO
-        pass
+
+        state.board.fill_position(action[0], action[1],action[2])
+        return BimaruState(state.board)
+
+        
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        # TODO
         pass
 
     def h(self, node: Node):
@@ -138,12 +150,15 @@ class Bimaru(Problem):
 
 if __name__ == "__main__":
     # TODO:
-    # Ler o ficheiro do standard input,
-    # Usar uma técnica de procura para resolver a instância,
-    # Retirar a solução a partir do nó resultante,
-    # Imprimir para o standard output no formato indicado.
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
+    board = Board.parse_instance()
+    print(board.filled_pos_row[3])
+    print(board.filled_pos_column[5])
+    board.fill_position(3,5,"c")
+    print(board.filled_pos_row[3])
+    print(board.filled_pos_column[5])
+    board.print()
     pass
 
     
