@@ -45,26 +45,20 @@ class Board:
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if 0 <= row <= self.LEN_ROW and  0 <= col <= self.LEN_COLUMN:
+            if self.board[row][col] == 'x':
+                return None
             return str(self.board[row][col])
         else:
-            raise ValueError #??? dont know what to raise here
+            return None
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-        if row == 0:
-            return (None, self.get_value(row + 1, col))
-        elif row == 9:
-            return (self.get_value(row - 1, col), None)
-        return (self.get_value(row - 1,col),self.get_value(row + 1, col))
+        return (self.get_value(row - 1, col), self.get_value(row + 1, col))
 
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        if col == 0:
-            return (None, self.get_value(row, col + 1))
-        elif col == 9:
-            return (self.get_value(row, col - 1), None) 
         return (self.get_value(row, col - 1), self.get_value(row, col + 1))
 
     @staticmethod
@@ -87,7 +81,7 @@ class Board:
             hint = sys.stdin.readline().split()[1:]
             hints.append(tuple(hint))
 
-        board = np.full((10, 10), ".")
+        board = np.full((10, 10), "x")
 
         for hint in hints:
             row_idx, col_idx, letter = hint
@@ -132,13 +126,13 @@ class Bimaru(Problem):
 
     # TODO: outros metodos da classe
 
-board = Board.parse_instance()
-board.print()
-print("\n")
-print(board.get_value(1,6))
-print("\n")
-print(board.adjacent_horizontal_values(5,9))
-print(board.adjacent_vertical_values(0,5))
+#board = Board.parse_instance()
+#board.print()
+#print("\n")
+#print(board.get_value(1,6))
+#print("\n")
+#print(board.adjacent_horizontal_values(5,9))
+#print(board.adjacent_vertical_values(0,5))
 
 
 
@@ -148,4 +142,8 @@ if __name__ == "__main__":
     # Usar uma técnica de procura para resolver a instância,
     # Retirar a solução a partir do nó resultante,
     # Imprimir para o standard output no formato indicado.
+    # Ler grelha do ficheiro 'i1.txt' (Figura 1):
+    # $ python3 bimaru.py < i1.txt
     pass
+
+    
