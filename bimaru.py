@@ -2,7 +2,7 @@
 # Devem alterar as classes e funções neste ficheiro de acordo com as instruções do enunciado.
 # Além das funções e classes já definidas, podem acrescentar outras que considerem pertinentes.
 
-# Grupo 00:
+# Grupo 69:
 # 00000 Nome1
 # 00000 Nome2
 
@@ -61,15 +61,30 @@ class Board:
         respectivamente."""
         return (self.get_value(row, col - 1), self.get_value(row, col + 1))
     
-    def fill_position(self, row, col, val):
+    def set_value(self, row, col, val):
         """Devolve um board com um novo elemento, na posição introdu
         zida"""
-        self.board[row-1][col-1] = val
-        if val != 'W':
+        self.board[row][col] = val
+        if val != 'W' and val != 'w':
             self.filled_pos_row[row] = self.filled_pos_row[row] - 1
             self.filled_pos_column[col] = self.filled_pos_column[col] - 1
         return self.board 
 
+    def fill_section(self):
+        """Recebe um board, nas linhas e/ou colunas onde o número de 
+        barcos restantes for zero, a função preenche com água"""
+        for i in range(10):
+            if self.filled_pos_row[i] == 0:
+                for j in range(10):
+                    if self.get_value(i, j) == None or self.get_value(i, j) == 'w':
+                        self.set_value(i, j, 'w')
+        for i in range(10):
+            if self.filled_pos_column[i] == 0:
+                for j in range(10):
+                    if self.get_value(j, i) == None or self.get_value(j, i) == 'w':
+                        self.set_value(j, i, 'w')
+        return self.board  
+    
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -138,26 +153,13 @@ class Bimaru(Problem):
 
     # TODO: outros metodos da classe
 
-#board = Board.parse_instance()
-#board.print()
-#print("\n")
-#print(board.get_value(1,6))
-#print("\n")
-#print(board.adjacent_horizontal_values(5,9))
-#print(board.adjacent_vertical_values(0,5))
-
-
 
 if __name__ == "__main__":
     # TODO:
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
     board = Board.parse_instance()
-    print(board.filled_pos_row[3])
-    print(board.filled_pos_column[5])
-    board.fill_position(3,5,"c")
-    print(board.filled_pos_row[3])
-    print(board.filled_pos_column[5])
+    board.fill_section()
     board.print()
     pass
 
