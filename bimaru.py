@@ -18,6 +18,7 @@ from search import (
 )
 import numpy as np
 
+
 class BimaruState:
     state_id = 0
 
@@ -34,57 +35,52 @@ class BimaruState:
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
-
-    def __init__(self, board, filled_pos_row, filled_pos_column):
+    def __init__(self, board, row_counts, column_counts, len_row, len_column):
         self.board = board
-        self.filled_pos_row = filled_pos_row
-        self.filled_pos_column = filled_pos_column
-        self.LEN_ROW = 10
-        self.LEN_COLUMN = 10
+        self.row_counts = row_counts
+        self.column_counts = column_counts
+        self.LEN_ROW = len_row
+        self.LEN_COLUMN = len_column
 
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        if 0 <= row <= self.LEN_ROW and  0 <= col <= self.LEN_COLUMN:
-            if self.board[row][col] == '-':
-                return None
-            return str(self.board[row][col])
-        else:
-            return None
+        if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN:
+            if self.board[row][col] == '*':
+                return "None"
+            else:
+                return str(self.board[row][col])
+        return "None"
+
+    def get_row_counts(self):
+        return self.row_counts
+
+    def get_column_counts(self):
+        return self.column_counts
 
     def adjacent_vertical_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente acima e abaixo,
         respectivamente."""
-        return (self.get_value(row - 1, col), self.get_value(row + 1, col))
+        return self.get_value(row - 1, col), self.get_value(row + 1, col)
 
     def adjacent_horizontal_values(self, row: int, col: int) -> (str, str):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        return (self.get_value(row, col - 1), self.get_value(row, col + 1))
-    
+        return self.get_value(row, col - 1), self.get_value(row, col + 1)
+
     def set_value(self, row, col, val):
         """Devolve um board com um novo elemento, na posição introdu
         zida"""
         self.board[row][col] = val
-        if val != 'W' and val != 'w':
-            self.filled_pos_row[row] = self.filled_pos_row[row] - 1
-            self.filled_pos_column[col] = self.filled_pos_column[col] - 1
-        return self.board 
+        if val != '.':
+            self.row_counts[row] -= 1
+            self.column_counts[col] -= 1
+        # eh mesmo necessario retornar a board?
+        return self.board
 
-    def fill_section(self):
-        """Recebe um board, nas linhas e/ou colunas onde o número de 
-        barcos restantes for zero, a função preenche com água"""
-        for i in range(10):
-            if self.filled_pos_row[i] == 0:
-                for j in range(10):
-                    if self.get_value(i, j) == None or self.get_value(i, j) == 'w':
-                        self.set_value(i, j, 'w')
-        for i in range(10):
-            if self.filled_pos_column[i] == 0:
-                for j in range(10):
-                    if self.get_value(j, i) == None or self.get_value(j, i) == 'w':
-                        self.set_value(j, i, 'w')
-        return self.board  
-    
+    def print(self):
+        np.savetxt(sys.stdout, self.board, delimiter=' ', fmt='%s')
+        print("\n")
+
     @staticmethod
     def parse_instance():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -96,25 +92,49 @@ class Board:
             > from sys import stdin
             > line = stdin.readline().split()
         """
-        filled_pos_row = list(map(int, sys.stdin.readline().split()[1:]))
-        filled_pos_column = list(map(int, sys.stdin.readline().split()[1:]))
+        LEN_ROW = 10
+        LEN_COLUMN = 10
+        row_counts = [int(val) for val in sys.stdin.readline().split()[1:]]
+        column_counts = [int(val) for val in sys.stdin.readline().split()[1:]]
         numOfHints = int(sys.stdin.readline())
         hints = []
+        board = np.full((LEN_ROW, LEN_COLUMN), "*")
 
         for i in range(numOfHints):
             hint = sys.stdin.readline().split()[1:]
             hints.append(tuple(hint))
 
-        board = np.full((10, 10), "-")
-
         for hint in hints:
             row_idx, col_idx, letter = hint
             board[int(row_idx)][int(col_idx)] = letter
 
-        return Board(board, filled_pos_row, filled_pos_column)
+        return Board(board, row_counts, column_counts, LEN_ROW, LEN_COLUMN)
 
-    def print(self):
-        np.savetxt(sys.stdout, self.board, delimiter=' ', fmt='%s')
+    def fill_section_with_water(self):
+        """Recebe um board, nas linhas e/ou colunas onde o número de
+        barcos restantes for zero, a função preenche com água"""
+
+        for i in range(self.LEN_ROW):
+            if self.row_counts[i] == 0:
+                for j in range(self.LEN_COLUMN):
+                    if self.get_value(i, j) == "None":
+                        self.set_value(i, j, '.')
+
+        for i in range(self.LEN_COLUMN):
+            if self.column_counts[i] == 0:
+                for j in range(self.LEN_ROW):
+                    if self.get_value(j, i) == "None":
+                        self.set_value(j, i, '.')
+        return self.board
+
+    def add_to_middle_piece(self):
+        for i in range(self.LEN_ROW):
+            for j in range(self.LEN_COLUMN):
+                if self.get_value(i, j) == 'M':
+                    ####
+
+
+
 
 class Bimaru(Problem):
     def __init__(self, board: Board):
@@ -135,10 +155,8 @@ class Bimaru(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
 
-        state.board.fill_position(action[0], action[1],action[2])
+        state.board.fill_position(action[0], action[1], action[2])
         return BimaruState(state.board)
-
-        
 
     def goal_test(self, state: BimaruState):
         """Retorna True se e só se o estado passado como argumento é
@@ -159,8 +177,9 @@ if __name__ == "__main__":
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
     board = Board.parse_instance()
+    board.print()
     board.fill_section()
     board.print()
+    print(board.get_row_counts())
+    print(board.get_column_counts())
     pass
-
-    
