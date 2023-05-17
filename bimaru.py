@@ -46,10 +46,10 @@ class Board:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN:
             if self.board[row][col] == '*':
-                return "None"
+                return None
             else:
                 return str(self.board[row][col])
-        return "None"
+        return None
 
     def get_row_counts(self):
         return self.row_counts
@@ -70,10 +70,11 @@ class Board:
     def set_value(self, row, col, val):
         """Devolve um board com um novo elemento, na posição introdu
         zida"""
-        self.board[row][col] = val
-        if val != '.':
-            self.row_counts[row] -= 1
-            self.column_counts[col] -= 1
+        if 0 <= row <= 9 and 0 <= col <= 9:
+            self.board[row][col] = val
+            if val != '.':
+                self.row_counts[row] -= 1
+                self.column_counts[col] -= 1
         # eh mesmo necessario retornar a board?
         return self.board
 
@@ -117,21 +118,52 @@ class Board:
         for i in range(self.LEN_ROW):
             if self.row_counts[i] == 0:
                 for j in range(self.LEN_COLUMN):
-                    if self.get_value(i, j) == "None":
+                    if self.get_value(i, j) is None:
                         self.set_value(i, j, '.')
 
         for i in range(self.LEN_COLUMN):
             if self.column_counts[i] == 0:
                 for j in range(self.LEN_ROW):
-                    if self.get_value(j, i) == "None":
+                    if self.get_value(j, i) is None:
                         self.set_value(j, i, '.')
         return self.board
 
-    def add_to_middle_piece(self):
+    def circle_single_boat_with_water(self, row, col):
+        self.set_value(row - 1, col, ".")
+        self.set_value(row + 1, col, ".")
+        self.set_value(row, col - 1, ".")
+        self.set_value(row, col + 1, ".")
+        self.set_value(row - 1, col - 1, ".")
+        self.set_value(row - 1, col + 1, ".")
+        self.set_value(row + 1, col - 1, ".")
+        self.set_value(row + 1, col + 1, ".")
+
+    def is_board_fully_filled(self) -> bool:
+        for i in self.get_row_counts():
+            if i != 0:
+                return False
+        for i in self.get_column_counts():
+            if i != 0:
+                return False
+        return True
+
+    def count_boats(self) -> tuple:
+        board_copy = self
+        num_submarines = 0
+        num_cruisers = 0
+        num_destroyers = 0
+        num_battleships = 0
+
         for i in range(self.LEN_ROW):
             for j in range(self.LEN_COLUMN):
-                if self.get_value(i, j) == 'M':
-                    ####
+                if board_copy.get_value(i, j) == 'C':
+                    num_submarines += 1
+                elif board_copy.get_value(i, j) == 'T':
+                    if board_copy.get_value(i + 1, j) == 'B':
+                        num_cruisers += 1
+                        board_copy.set_value(i + 1, j, 'X')
+
+
 
 
 
@@ -155,7 +187,7 @@ class Bimaru(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
 
-        state.board.fill_position(action[0], action[1], action[2])
+        state.board.set_value(action[0], action[1], action[2])
         return BimaruState(state.board)
 
     def goal_test(self, state: BimaruState):
@@ -177,8 +209,10 @@ if __name__ == "__main__":
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
     board = Board.parse_instance()
+    board.circle_single_boat_with_water(9, 5)
+    board.circle_single_boat_with_water(3, 2)
     board.print()
-    board.fill_section()
+    board.fill_section_with_water()
     board.print()
     print(board.get_row_counts())
     print(board.get_column_counts())
