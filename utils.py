@@ -442,12 +442,12 @@ def issequence(x):
     return isinstance(x, collections.abc.Sequence)
 
 
-def print_table(table, header=None, sep='   ', numfmt='{}'):
-    """Print a list of lists as a table, so that columns line up nicely.
-    header, if specified, will be printed as the first row.
+def print_board_table(table, header=None, sep='   ', numfmt='{}'):
+    """print_board a list of lists as a table, so that columns line up nicely.
+    header, if specified, will be print_boarded as the first row.
     numfmt is the format for all numbers; you might want e.g. '{:.2f}'.
     (If you want different formats in different columns,
-    don't use print_table.) sep is the separator between columns."""
+    don't use print_board_table.) sep is the separator between columns."""
     justs = ['rjust' if isnumber(x) else 'ljust' for x in table[0]]
 
     if header:
@@ -459,7 +459,7 @@ def print_table(table, header=None, sep='   ', numfmt='{}'):
     sizes = list(map(lambda seq: max(map(len, seq)), list(zip(*[map(str, row) for row in table]))))
 
     for row in table:
-        print(sep.join(getattr(str(x), j)(size) for (j, size, x) in zip(justs, sizes, row)))
+        print_board(sep.join(getattr(str(x), j)(size) for (j, size, x) in zip(justs, sizes, row)))
 
 
 def open_data(name, mode='r'):

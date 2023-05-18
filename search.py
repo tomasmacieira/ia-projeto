@@ -274,7 +274,7 @@ def best_first_graph_search(problem, f, display=False):
         node = frontier.pop()
         if problem.goal_test(node.state):
             if display:
-                print(len(explored), "paths have been expanded and", len(frontier), "paths remain in the frontier")
+                print_board(len(explored), "paths have been expanded and", len(frontier), "paths remain in the frontier")
             return node
         explored.add(node.state)
         for child in node.expand(problem):
@@ -895,7 +895,7 @@ class LRTAStarAgent:
     def LRTA_cost(self, s, a, s1, H):
         """Returns cost to move from state 's' to state 's1' plus
         estimated cost to get to goal from s1."""
-        print(s, a, s1)
+        print_board(s, a, s1)
         if s1 is None:
             return self.problem.h(s)
         else:
@@ -1325,19 +1325,19 @@ def random_boggle(n=4):
 boyan_best = list('RSTCSDEIAEGNLRPEATESMSSID')
 
 
-def print_boggle(board):
-    """Print the board in a 2-d array."""
+def print_board_boggle(board):
+    """print_board the board in a 2-d array."""
     n2 = len(board)
     n = exact_sqrt(n2)
     for i in range(n2):
 
         if i % n == 0 and i > 0:
-            print()
+            print_board()
         if board[i] == 'Q':
-            print('Qu', end=' ')
+            print_board('Qu', end=' ')
         else:
-            print(str(board[i]) + ' ', end=' ')
-    print()
+            print_board(str(board[i]) + ' ', end=' ')
+    print_board()
 
 
 def boggle_neighbors(n2, cache={}):
@@ -1496,11 +1496,11 @@ def boggle_hill_climbing(board=None, ntimes=100, verbose=True):
         if new > best:
             best = new
             if verbose:
-                print(best, _, board)
+                print_board(best, _, board)
         else:
             board[i] = oldc  # Change back
     if verbose:
-        print_boggle(board)
+        print_board_boggle(board)
     return board, best
 
 
@@ -1567,11 +1567,11 @@ def compare_searchers(problems, header,
         return p
 
     table = [[name(s)] + [do(s, p) for p in problems] for s in searchers]
-    print_table(table, header)
+    print_board_table(table, header)
 
 
 def compare_graph_searchers():
-    """Prints a table of search results."""
+    """print_boards a table of search results."""
     compare_searchers(problems=[GraphProblem('Arad', 'Bucharest', romania_map),
                                 GraphProblem('Oradea', 'Neamt', romania_map),
                                 GraphProblem('Q', 'WA', australia_map)],

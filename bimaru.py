@@ -35,6 +35,7 @@ class BimaruState:
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
+
     def __init__(self, board, row_counts, column_counts, len_row, len_column):
         self.board = board
         self.row_counts = row_counts
@@ -42,14 +43,21 @@ class Board:
         self.LEN_ROW = len_row
         self.LEN_COLUMN = len_column
 
+    @classmethod
+    def from_board(cls, board):
+        """ este metodo foi criada para testar a funcao count_boats e serve para se conseguir ler um
+        input que contem uma board ja feita (como os .out do projeto). Deve possivelmente ser removido quando
+        o projeto for concluido. """
+        return cls(board, None, None, 10, 10)
+
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN:
             if self.board[row][col] == '*':
-                return None
+                return "None"
             else:
                 return str(self.board[row][col])
-        return None
+        return "None"
 
     def get_row_counts(self):
         return self.row_counts
@@ -78,7 +86,7 @@ class Board:
         # eh mesmo necessario retornar a board?
         return self.board
 
-    def print(self):
+    def print_board(self):
         np.savetxt(sys.stdout, self.board, delimiter=' ', fmt='%s')
         print("\n")
 
@@ -118,13 +126,13 @@ class Board:
         for i in range(self.LEN_ROW):
             if self.row_counts[i] == 0:
                 for j in range(self.LEN_COLUMN):
-                    if self.get_value(i, j) is None:
+                    if self.get_value(i, j) == "None":
                         self.set_value(i, j, '.')
 
         for i in range(self.LEN_COLUMN):
             if self.column_counts[i] == 0:
                 for j in range(self.LEN_ROW):
-                    if self.get_value(j, i) is None:
+                    if self.get_value(j, i) == "None":
                         self.set_value(j, i, '.')
         return self.board
 
@@ -148,24 +156,51 @@ class Board:
         return True
 
     def count_boats(self) -> tuple:
-        board_copy = self
         num_submarines = 0
         num_cruisers = 0
         num_destroyers = 0
         num_battleships = 0
 
-        for i in range(self.LEN_ROW):
-            for j in range(self.LEN_COLUMN):
-                if board_copy.get_value(i, j) == 'C':
+        for i in range(self.LEN_COLUMN):
+            for j in range(self.LEN_ROW):
+                value = self.get_value(j, i).lower()
+                if value == 'c':
                     num_submarines += 1
-                elif board_copy.get_value(i, j) == 'T':
-                    if board_copy.get_value(i + 1, j) == 'B':
+                elif value == 't':
+                    if self.get_value(j + 1, i).lower() == 'b':
                         num_cruisers += 1
-                        board_copy.set_value(i + 1, j, 'X')
+                        j += 1
+                    elif self.get_value(j + 1, i).lower() == 'm':
+                        if self.get_value(j + 2, i).lower() == 'm' \
+                                and self.get_value(j + 3, i).lower() == 'b':
+                            num_battleships += 1
+                            j += 3
+                        elif self.get_value(j + 2, i).lower() == 'b':
+                            num_destroyers += 1
+                            j += 2
+                elif value == 'l':
+                    if self.get_value(j, i + 1).lower() == 'r':
+                        num_cruisers += 1
+                    elif self.get_value(j, i + 1).lower() == 'm':
+                        if self.get_value(j, i + 2).lower() == 'm' \
+                                and self.get_value(j, i + 3).lower() == 'r':
+                            num_battleships += 1
+                        elif self.get_value(j, i + 2).lower() == 'r':
+                            num_destroyers += 1
 
+        return num_submarines, num_cruisers, num_destroyers, num_battleships
 
-
-
+    @staticmethod
+    def get_board_output():
+        """ este metodo foi criada para testar a funcao count_boats e serve para se conseguir ler um
+           input que contem uma board ja feita (como os .out do projeto). Deve possivelmente ser removido quando
+           o projeto for concluido. """
+        board = np.empty((10, 10), dtype=str)
+        for i in range(10):
+            line = sys.stdin.readline().strip()
+            for j in range(10):
+                board[i][j] = line[j]
+        return Board.from_board(board)
 
 
 class Bimaru(Problem):
@@ -190,10 +225,13 @@ class Bimaru(Problem):
         state.board.set_value(action[0], action[1], action[2])
         return BimaruState(state.board)
 
-    def goal_test(self, state: BimaruState):
+    def goal_test(self, state: BimaruState) -> bool:
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
+        if state.board.is_board_fully_filled() and state.board.count_boats() == (4, 3, 2, 1):
+            return True
+        return False
         pass
 
     def h(self, node: Node):
@@ -208,12 +246,15 @@ if __name__ == "__main__":
     # TODO:
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
-    board = Board.parse_instance()
+    """  board = Board.parse_instance()
     board.circle_single_boat_with_water(9, 5)
     board.circle_single_boat_with_water(3, 2)
-    board.print()
+    board.print_board()
     board.fill_section_with_water()
-    board.print()
+    board.print_board()
     print(board.get_row_counts())
-    print(board.get_column_counts())
+    print(board.get_column_counts()) """
+    board = Board.get_board_output()
+    board.print_board()
+    print(board.count_boats())
     pass
