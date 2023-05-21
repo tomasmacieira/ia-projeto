@@ -36,10 +36,11 @@ class BimaruState:
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
-    def __init__(self, board, row_counts, column_counts, len_row, len_column):
+    def __init__(self, board, row_counts, column_counts, hints, len_row, len_column):
         self.board = board
         self.row_counts = row_counts
         self.column_counts = column_counts
+        self.hints = hints
         self.LEN_ROW = len_row
         self.LEN_COLUMN = len_column
 
@@ -54,10 +55,10 @@ class Board:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN:
             if self.board[row][col] == '*':
-                return "None"
+                return None
             else:
                 return str(self.board[row][col])
-        return "None"
+        return None
 
     def get_row_counts(self):
         return self.row_counts
@@ -85,6 +86,23 @@ class Board:
                 self.column_counts[col] -= 1
         # eh mesmo necessario retornar a board?
         return self.board
+
+
+    #Important still doing it. Have to do what kind of ships can be added in each position
+    def possible_positions(self):
+        """Devolve uma lista com possiveis acoes i.e: posicoes livres
+        onde eh possivel introduzir um barco"""
+        possible_actions = []
+
+        for row in range(self.LEN_ROW):
+            for col in range(self.LEN_COLUMN):
+                if self.get_value(row,col) == "*":
+                    action = self.get_value(row,col)
+                    possible_actions.append(action)
+                """if self.get_value(row,col) == "*":
+                    #check if can put top
+                    if self.get_value(row, col - 1) == None"""
+        return possible_actions                    
 
     def print_board(self):
         np.savetxt(sys.stdout, self.board, delimiter=' ', fmt='%s')
@@ -117,7 +135,7 @@ class Board:
             row_idx, col_idx, letter = hint
             board[int(row_idx)][int(col_idx)] = letter
 
-        return Board(board, row_counts, column_counts, LEN_ROW, LEN_COLUMN)
+        return Board(board, row_counts, column_counts, hints, LEN_ROW, LEN_COLUMN)
 
     def fill_section_with_water(self):
         """Recebe um board, nas linhas e/ou colunas onde o número de
@@ -126,13 +144,13 @@ class Board:
         for i in range(self.LEN_ROW):
             if self.row_counts[i] == 0:
                 for j in range(self.LEN_COLUMN):
-                    if self.get_value(i, j) == "None":
+                    if self.get_value(i, j) == None:
                         self.set_value(i, j, '.')
 
         for i in range(self.LEN_COLUMN):
             if self.column_counts[i] == 0:
                 for j in range(self.LEN_ROW):
-                    if self.get_value(j, i) == "None":
+                    if self.get_value(j, i) == None:
                         self.set_value(j, i, '.')
         return self.board
 
@@ -146,6 +164,42 @@ class Board:
         self.set_value(row + 1, col - 1, ".")
         self.set_value(row + 1, col + 1, ".")
 
+    def fill_top_border_with_water(self, row, col):
+        self.set_value(row , col - 1, ".")
+        self.set_value(row + 1, col - 1, ".")
+        self.set_value(row - 1, col - 1, ".")
+        self.set_value(row - 1, col, ".")
+        self.set_value(row - 1, col + 1, ".")
+        self.set_value(row + 1, col + 1, ".")
+        self.set_value(row , col + 1, ".")
+        
+    def fill_bottom_border_with_water(self, row, col):
+        self.set_value(row , col - 1, ".")
+        self.set_value(row - 1, col - 1, ".")
+        self.set_value(row + 1, col - 1, ".")
+        self.set_value(row + 1, col, ".")
+        self.set_value(row + 1, col + 1, ".")
+        self.set_value(row - 1, col + 1, ".")
+        self.set_value(row , col + 1, ".")
+        
+    def fill_middle_border_with_water(self, row, col):
+        self.set_value(row - 1, col - 1, ".")
+        self.set_value(row + 1, col - 1, ".")
+        self.set_value(row - 1, col + 1, ".")
+        self.set_value(row + 1, col + 1, ".")
+
+    def process_board(self):
+        for hint in self.hints:
+            if hint[2] == 'C':
+                self.circle_single_boat_with_water(int(hint[0]),int(hint[1]))
+            elif hint[2] == 'T':
+                self.fill_top_border_with_water(int(hint[0]),int(hint[1]))
+            elif hint[2] == 'B':
+                self.fill_bottom_border_with_water(int(hint[0]),int(hint[1]))
+            elif hint[2] == 'M':
+                self.fill_middle_border_with_water(int(hint[0]),int(hint[1]))
+        self.fill_section_with_water()
+        
     def is_board_fully_filled(self) -> bool:
         for i in self.get_row_counts():
             if i != 0:
@@ -213,7 +267,7 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        # TODO
+        return state.board.possible_positions()
         pass
 
     def result(self, state: BimaruState, action):
@@ -229,10 +283,7 @@ class Bimaru(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
-        if state.board.is_board_fully_filled() and state.board.count_boats() == (4, 3, 2, 1):
-            return True
-        return False
-        pass
+        return state.board.is_board_fully_filled() and state.board.count_boats() == (4, 3, 2, 1)
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -246,15 +297,10 @@ if __name__ == "__main__":
     # TODO:
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
-    """  board = Board.parse_instance()
-    board.circle_single_boat_with_water(9, 5)
-    board.circle_single_boat_with_water(3, 2)
-    board.print_board()
-    board.fill_section_with_water()
-    board.print_board()
-    print(board.get_row_counts())
-    print(board.get_column_counts()) """
-    board = Board.get_board_output()
-    board.print_board()
-    print(board.count_boats())
+    board = Board.parse_instance()
+    board.process_board()
+    bimaru = Bimaru(board)
+    goal_node = greedy_search(bimaru)
+    print(goal_node)
+
     pass
