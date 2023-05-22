@@ -145,7 +145,7 @@ class Board:
 
         return Board(board, row_counts, column_counts, hints, LEN_ROW, LEN_COLUMN)
 
-    def fill_section_with_water(self):
+    def fill_sections_with_water(self):
         """Recebe um board, nas linhas e/ou colunas onde o número de
         barcos restantes for zero, a função preenche com água"""
 
@@ -284,8 +284,12 @@ class Board:
                 self.circle_top_of_boat_with_water(row, col)
             elif value == 'B':
                 self.circle_bottom_of_boat_with_water(row, col)
+            elif value == 'L':
+                self.circle_left_of_boat_with_water(row, col)
+            elif value == 'R':
+                self.circle_right_of_boat_with_water(row, col)
 
-        self.fill_section_with_water()
+        self.fill_sections_with_water()
 
     @staticmethod
     def get_board_output():
