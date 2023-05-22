@@ -50,6 +50,14 @@ class Board:
         o projeto for concluido. """
         return cls(board, None, None, 10, 10)
 
+    def copy(self):
+        """Creates a copy of the Board."""
+        new_board = np.copy(self.board)
+        new_row_counts = self.row_counts.copy()
+        new_column_counts = self.column_counts.copy()
+        new_hints = self.hints.copy()
+        return Board(new_board, new_row_counts, new_column_counts, new_hints, self.LEN_ROW, self.LEN_COLUMN)
+
     def get_value(self, row: int, col: int) -> str:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN:
@@ -77,9 +85,9 @@ class Board:
 
     def set_value(self, row, col, val):
         """Devolve um board com um novo elemento, na posição introduzida"""
-        if 0 <= row <= 9 and 0 <= col <= 9:
+        if 0 <= row <= 9 and 0 <= col <= 9 and self.board[row][col] != 'W':
             self.board[row][col] = val
-            if val != '.':
+            if val != 'w':
                 self.row_counts[row] -= 1
                 self.column_counts[col] -= 1
         return self.board
@@ -100,8 +108,9 @@ class Board:
                     if self.get_value(row, col - 1) == None"""
         return possible_actions
 
-    def print_board(self):
-        np.savetxt(sys.stdout, self.board, delimiter=' ', fmt='%s')
+    def print(self):
+        modified_board = np.where(self.board == 'w', '.', self.board)  # Replace 'w' with '.'
+        np.savetxt(sys.stdout, modified_board, delimiter=' ', fmt='%s')
         print("\n")
 
     @staticmethod
@@ -129,6 +138,9 @@ class Board:
 
         for hint in hints:
             row_idx, col_idx, letter = hint
+            if letter != 'W':
+                row_counts[int(row_idx)] -= 1
+                column_counts[int(col_idx)] -= 1
             board[int(row_idx)][int(col_idx)] = letter
 
         return Board(board, row_counts, column_counts, hints, LEN_ROW, LEN_COLUMN)
@@ -141,13 +153,13 @@ class Board:
             if self.row_counts[i] == 0:
                 for j in range(self.LEN_COLUMN):
                     if self.get_value(i, j) == "None":
-                        self.set_value(i, j, '.')
+                        self.set_value(i, j, 'w')
 
         for i in range(self.LEN_COLUMN):
             if self.column_counts[i] == 0:
                 for j in range(self.LEN_ROW):
                     if self.get_value(j, i) == "None":
-                        self.set_value(j, i, '.')
+                        self.set_value(j, i, 'w')
         return self.board
 
     def is_board_fully_filled(self) -> bool:
@@ -195,69 +207,71 @@ class Board:
         return num_submarines, num_cruisers, num_destroyers, num_battleships
 
     def circle_single_boat_with_water(self, row, col):
-        self.set_value(row - 1, col, ".")
-        self.set_value(row + 1, col, ".")
-        self.set_value(row, col - 1, ".")
-        self.set_value(row, col + 1, ".")
-        self.set_value(row - 1, col - 1, ".")
-        self.set_value(row - 1, col + 1, ".")
-        self.set_value(row + 1, col - 1, ".")
-        self.set_value(row + 1, col + 1, ".")
+        self.set_value(row - 1, col, "w")
+        self.set_value(row + 1, col, "w")
+        self.set_value(row, col - 1, "w")
+        self.set_value(row, col + 1, "w")
+        self.set_value(row - 1, col - 1, "w")
+        self.set_value(row - 1, col + 1, "w")
+        self.set_value(row + 1, col - 1, "w")
+        self.set_value(row + 1, col + 1, "w")
 
     def circle_top_of_boat_with_water(self, row, col):
-        self.set_value(row - 1, col, ".")
-        self.set_value(row - 1, col - 1, ".")
-        self.set_value(row - 1, col + 1, ".")
-        self.set_value(row, col - 1, ".")
-        self.set_value(row, col + 1, ".")
-        self.set_value(row + 1, col + 1, ".")
-        self.set_value(row + 1, col - 1, ".")
+        self.set_value(row - 1, col, "w")
+        self.set_value(row - 1, col - 1, "w")
+        self.set_value(row - 1, col + 1, "w")
+        self.set_value(row, col - 1, "w")
+        self.set_value(row, col + 1, "w")
+        self.set_value(row + 1, col + 1, "w")
+        self.set_value(row + 1, col - 1, "w")
 
     def circle_bottom_of_boat_with_water(self, row, col):
-        self.set_value(row + 1, col, ".")
-        self.set_value(row + 1, col - 1, ".")
-        self.set_value(row + 1, col + 1, ".")
-        self.set_value(row, col - 1, ".")
-        self.set_value(row, col + 1, ".")
-        self.set_value(row - 1, col - 1, ".")
-        self.set_value(row - 1, col + 1, ".")
+        self.set_value(row + 1, col, "w")
+        self.set_value(row + 1, col - 1, "w")
+        self.set_value(row + 1, col + 1, "w")
+        self.set_value(row, col - 1, "w")
+        self.set_value(row, col + 1, "w")
+        self.set_value(row - 1, col - 1, "w")
+        self.set_value(row - 1, col + 1, "w")
 
     def circle_left_of_boat_with_water(self, row, col):
-        self.set_value(row - 1, col - 1, ".")
-        self.set_value(row - 1, col, ".")
-        self.set_value(row - 1, col + 1, ".")
-        self.set_value(row, col - 1, ".")
-        self.set_value(row + 1, col - 1, ".")
-        self.set_value(row + 1, col, ".")
-        self.set_value(row + 1, col + 1, ".")
+        self.set_value(row - 1, col - 1, "w")
+        self.set_value(row - 1, col, "w")
+        self.set_value(row - 1, col + 1, "w")
+        self.set_value(row, col - 1, "w")
+        self.set_value(row + 1, col - 1, "w")
+        self.set_value(row + 1, col, "w")
+        self.set_value(row + 1, col + 1, "w")
 
     def circle_right_of_boat_with_water(self, row, col):
-        self.set_value(row - 1, col - 1, ".")
-        self.set_value(row - 1, col, ".")
-        self.set_value(row - 1, col + 1, ".")
-        self.set_value(row, col + 1, ".")
-        self.set_value(row + 1, col - 1, ".")
-        self.set_value(row + 1, col, ".")
-        self.set_value(row + 1, col + 1, ".")
+        self.set_value(row - 1, col - 1, "w")
+        self.set_value(row - 1, col, "w")
+        self.set_value(row - 1, col + 1, "w")
+        self.set_value(row, col + 1, "w")
+        self.set_value(row + 1, col - 1, "w")
+        self.set_value(row + 1, col, "w")
+        self.set_value(row + 1, col + 1, "w")
 
     def add_value_and_circle_with_water(self, action):
         row, col, value = action
 
-        if value.lower() == 'c':
+        if value == 'w':
+            self.set_value(row, col, value)
+        elif value == 'c':
             self.set_value(row, col, value)
             self.circle_single_boat_with_water(row, col)
-        elif value.lower() == 't':
+        elif value == 't':
             self.set_value(row, col, value)
             self.circle_top_of_boat_with_water(row, col)
-        elif value.lower() == 'm':
+        elif value == 'm':
             self.set_value(row, col, value)
-        elif value.lower() == 'b':
+        elif value == 'b':
             self.set_value(row, col, value)
             self.circle_bottom_of_boat_with_water(row, col)
-        elif value.lower() == 'l':
+        elif value == 'l':
             self.set_value(row, col, value)
             self.circle_left_of_boat_with_water(row, col)
-        elif value.lower() == 'r':
+        elif value == 'r':
             self.set_value(row, col, value)
             self.circle_right_of_boat_with_water(row, col)
 
@@ -304,7 +318,9 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        return BimaruState(state.board.add_value_and_circle_with_water(action))
+        new_board = state.board.copy()
+        new_board.add_value_and_circle_with_water(action)
+        return BimaruState(new_board)
 
     def goal_test(self, state: BimaruState) -> bool:
         """Retorna True se e só se o estado passado como argumento é
@@ -324,15 +340,54 @@ if __name__ == "__main__":
     # TODO:
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
-    """  board = Board.parse_instance()
-    board.circle_single_boat_with_water(9, 5)
-    board.circle_single_boat_with_water(3, 2)
-    board.print_board()
-    board.fill_section_with_water()
-    board.print_board()
-    print(board.get_row_counts())
-    print(board.get_column_counts()) """
-    board = Board.get_board_output()
-    board.print_board()
-    print(board.count_boats())
+    board = Board.parse_instance()
+    # Exemplo 1
+    """
+    print(board.adjacent_vertical_values(3, 3))
+    print(board.adjacent_horizontal_values(3, 3))
+    print(board.adjacent_vertical_values(1, 0))
+    print(board.adjacent_horizontal_values(1, 0)) """
+    # Exemplo 2
+    """"
+    # Criar uma instância de Bimaru:
+    problem = Bimaru(board)
+    # Criar um estado com a configuração inicial:
+    initial_state = BimaruState(board)
+    # Mostrar valor na posição (3, 3):
+    print(initial_state.board.get_value(3, 3))
+    # Realizar acção de inserir o valor w (água) na posição da linha 3 e coluna 3
+    result_state = problem.result(initial_state, (3, 3, 'w'))
+    # Mostrar valor na posição (3, 3):
+    print(result_state.board.get_value(3, 3))
+    result_state.board.print_board() """
+    # Exemplo 3
+    # Criar uma instância de Bimaru:
+    problem = Bimaru(board)
+    # Criar um estado com a configuração inicial:
+    s0 = BimaruState(board)
+    s0.board.print()
+    # Aplicar as ações que resolvem a instância
+    s1 = problem.result(s0, (0, 6, 't'))
+    s2 = problem.result(s1, (1, 0, 'b'))
+    s3 = problem.result(s2, (1, 9, 't'))
+    s4 = problem.result(s3, (2, 6, 'b'))
+    s5 = problem.result(s4, (2, 9, 'm'))
+    s6 = problem.result(s5, (3, 9, 'm'))
+    s7 = problem.result(s6, (4, 0, 'c'))
+    s8 = problem.result(s7, (4, 7, 'c'))
+    s9 = problem.result(s8, (4, 9, 'b'))
+    s10 = problem.result(s9, (6, 4, 't'))
+    s11 = problem.result(s10, (7, 0, 't'))
+    s12 = problem.result(s11, (7, 4, 'b'))
+    s13 = problem.result(s12, (7, 8, 't'))
+    s14 = problem.result(s13, (8, 0, 'm'))
+    s15 = problem.result(s14, (9, 0, 'b'))
+    # ...
+    # não estão aqui apresentadas todas as ações
+    # considere que s15 contém a solução final
+    # Verificar se foi atingida a solução
+    print("Is goal?", problem.goal_test(s5))
+    s5.board.print()
+    print("Is goal?", problem.goal_test(s15))
+    print("Solution:\n", s15.board.print(), sep="")
     pass
