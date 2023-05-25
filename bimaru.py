@@ -100,12 +100,11 @@ class Board:
 
         for row in range(self.LEN_ROW):
             for col in range(self.LEN_COLUMN):
-                if self.get_value(row,col) == "*":
-                    action = self.get_value(row,col)
-                    possible_actions.append(action)
-                """if self.get_value(row,col) == "*":
-                    #check if can put top
-                    if self.get_value(row, col - 1) == None"""
+                if self.get_value(row,col) == "None":
+                    possible_actions.append((row,col,"t"))
+                    possible_actions.append((row,col,"b"))
+                    possible_actions.append((row,col,"c"))
+                    possible_actions.append((row,col,"m"))
         return possible_actions
 
     def print(self):
@@ -163,10 +162,10 @@ class Board:
         return self.board
 
     def is_board_fully_filled(self) -> bool:
-        for i in self.get_row_counts():
+        for i in self.row_counts:
             if i != 0:
                 return False
-        for i in self.get_column_counts():
+        for i in self.column_counts:
             if i != 0:
                 return False
         return True
@@ -217,6 +216,7 @@ class Board:
         self.set_value(row + 1, col + 1, "w")
 
     def circle_top_of_boat_with_water(self, row, col):
+
         self.set_value(row - 1, col, "w")
         self.set_value(row - 1, col - 1, "w")
         self.set_value(row - 1, col + 1, "w")
@@ -252,6 +252,12 @@ class Board:
         self.set_value(row + 1, col, "w")
         self.set_value(row + 1, col + 1, "w")
 
+    def circle_middle_of_boat_with_water(self, row, col):
+        self.set_value(row - 1, col - 1, "w")
+        self.set_value(row - 1, col + 1, "w")
+        self.set_value(row + 1, col - 1, "w")
+        self.set_value(row + 1, col + 1, "w")
+
     def add_value_and_circle_with_water(self, action):
         row, col, value = action
 
@@ -274,20 +280,39 @@ class Board:
         elif value == 'r':
             self.set_value(row, col, value)
             self.circle_right_of_boat_with_water(row, col)
+    """
+    def fill_obvious_spaces(self):
+        for row in range(self.LEN_ROW):
+            for col in range(self.LEN_COLUMN):
+                available_positions = []
+                empty_spaces = 0
+                if self.board[row][col] == '*':
+                    empty_spaces +=
+                    available_positions.append(tuple(row,col))
+            if empty_spaces == self.row_counts:
+                for i in available_positions:
+    """                 
+
+
+
 
     def process_board(self):
         for hint in self.hints:
             row, col, value = hint
+            row = int(row)
+            col = int(col)
             if value == 'C':
                 self.circle_single_boat_with_water(row, col)
             elif value == 'T':
-                self.circle_top_of_boat_with_water(row, col)
+                self.circle_top_of_boat_with_water(int(row), int(col))
             elif value == 'B':
                 self.circle_bottom_of_boat_with_water(row, col)
             elif value == 'L':
                 self.circle_left_of_boat_with_water(row, col)
             elif value == 'R':
                 self.circle_right_of_boat_with_water(row, col)
+            elif value == 'M':
+                self.circle_middle_of_boat_with_water(row, col)
 
         self.fill_sections_with_water()
 
@@ -322,9 +347,8 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        new_board = state.board.copy()
-        new_board.add_value_and_circle_with_water(action)
-        return BimaruState(new_board)
+        state.board.set_value(action[0],action[1],action[2])
+        return state.board
 
     def goal_test(self, state: BimaruState) -> bool:
         """Retorna True se e só se o estado passado como argumento é
@@ -341,57 +365,13 @@ class Bimaru(Problem):
 
 
 if __name__ == "__main__":
-    # TODO:
-    # Ler grelha do ficheiro 'i1.txt' (Figura 1):
-    # $ python3 bimaru.py < i1.txt
+   # Ler grelha do ficheiro 'i1.txt' (Figura 1):
+    #    $ python3 bimaru.py < i1.txt
     board = Board.parse_instance()
-    # Exemplo 1
-    """
-    print(board.adjacent_vertical_values(3, 3))
-    print(board.adjacent_horizontal_values(3, 3))
-    print(board.adjacent_vertical_values(1, 0))
-    print(board.adjacent_horizontal_values(1, 0)) """
-    # Exemplo 2
-    """"
-    # Criar uma instância de Bimaru:
+    board.process_board()
     problem = Bimaru(board)
-    # Criar um estado com a configuração inicial:
-    initial_state = BimaruState(board)
-    # Mostrar valor na posição (3, 3):
-    print(initial_state.board.get_value(3, 3))
-    # Realizar acção de inserir o valor w (água) na posição da linha 3 e coluna 3
-    result_state = problem.result(initial_state, (3, 3, 'w'))
-    # Mostrar valor na posição (3, 3):
-    print(result_state.board.get_value(3, 3))
-    result_state.board.print_board() """
-    # Exemplo 3
-    # Criar uma instância de Bimaru:
-    problem = Bimaru(board)
-    # Criar um estado com a configuração inicial:
-    s0 = BimaruState(board)
-    s0.board.print()
-    # Aplicar as ações que resolvem a instância
-    s1 = problem.result(s0, (0, 6, 't'))
-    s2 = problem.result(s1, (1, 0, 'b'))
-    s3 = problem.result(s2, (1, 9, 't'))
-    s4 = problem.result(s3, (2, 6, 'b'))
-    s5 = problem.result(s4, (2, 9, 'm'))
-    s6 = problem.result(s5, (3, 9, 'm'))
-    s7 = problem.result(s6, (4, 0, 'c'))
-    s8 = problem.result(s7, (4, 7, 'c'))
-    s9 = problem.result(s8, (4, 9, 'b'))
-    s10 = problem.result(s9, (6, 4, 't'))
-    s11 = problem.result(s10, (7, 0, 't'))
-    s12 = problem.result(s11, (7, 4, 'b'))
-    s13 = problem.result(s12, (7, 8, 't'))
-    s14 = problem.result(s13, (8, 0, 'm'))
-    s15 = problem.result(s14, (9, 0, 'b'))
-    # ...
-    # não estão aqui apresentadas todas as ações
-    # considere que s15 contém a solução final
+    # Obter o nó solução usando a procura em profundidade:
+    goal_node = depth_first_tree_search(problem)
     # Verificar se foi atingida a solução
-    print("Is goal?", problem.goal_test(s5))
-    s5.board.print()
-    print("Is goal?", problem.goal_test(s15))
-    print("Solution:\n", s15.board.print(), sep="")
-    pass
+    print("Is goal?", problem.goal_test(goal_node.state))
+    print("Solution:\n", goal_node.state.board.print(), sep="")
