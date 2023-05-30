@@ -30,43 +30,25 @@ class BimaruState:
     def __lt__(self, other):
         return self.id < other.id
 
-    # TODO: outros metodos da classe
-
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
 
-    def __init__(self, board, row_counts, column_counts, hints, len_row, len_column, num_boats_to_add, isCopy):
+    def __init__(self, board, values_to_add_row_counts, values_to_add_col_counts, free_row_counts, free_col_counts,
+                 len_row, len_column, num_boats_to_add, isCopy):
         self.board = board
-        self.row_counts = row_counts
-        self.column_counts = column_counts
-        self.hints = hints
+        self.values_to_add_row_counts = values_to_add_row_counts
+        self.values_to_add_col_counts = values_to_add_col_counts
         self.LEN_ROW = len_row
         self.LEN_COLUMN = len_column
+        self.free_row_counts = free_row_counts
+        self.free_col_counts = free_col_counts
+        self.unknown_values_positions = []
         if isCopy:
             self.num_boats_to_add = num_boats_to_add
         else:
             self.num_boats_to_add = self.count_boats_to_add()
             self.process_board()
-
-    def process_board(self):
-        for hint in self.hints:
-            row, col, value = hint
-            row = int(row)
-            col = int(col)
-            if value == 'C':
-                self.circle_single_boat_with_water(row, col)
-            elif value == 'T':
-                self.circle_top_of_boat_with_water(row, col)
-            elif value == 'B':
-                self.circle_bottom_of_boat_with_water(row, col)
-            elif value == 'M':
-                self.circle_middle_of_boat_with_water(row, col)
-            elif value == 'L':
-                self.circle_left_of_boat_with_water(row, col)
-            elif value == 'R':
-                self.circle_right_of_boat_with_water(row, col)
-        self.fill_sections_with_water()
 
     def count_boats_to_add(self) -> list:
         num_submarines = 4
@@ -74,54 +56,37 @@ class Board:
         num_destroyers = 2
         num_battleships = 1
 
-        for i in range(self.LEN_COLUMN):
-            for j in range(self.LEN_ROW):
-                value = self.get_value(j, i)
-                if value == 'c':
+        for col in range(self.LEN_COLUMN):
+            for row in range(self.LEN_ROW):
+                letter = self.get_letter(row, col)
+                if letter == 'c':
                     num_submarines -= 1
-                elif value == 't':
-                    if self.get_value(j + 1, i) == 'b':
+                elif letter == 't':
+                    if self.get_letter(row + 1, col) == 'b':
                         num_cruisers -= 1
-                        j -= 1
-                    elif self.get_value(j + 1, i) == 'm':
-                        if self.get_value(j + 2, i) == 'm' \
-                                and self.get_value(j + 3, i) == 'b':
+                        row -= 1
+                    elif self.get_letter(row + 1, col) == 'm':
+                        if self.get_letter(row + 2, col) == 'm' \
+                                and self.get_letter(row + 3, col) == 'b':
                             num_battleships -= 1
-                            j += 3
-                        elif self.get_value(j + 2, i) == 'b':
+                            row += 3
+                        elif self.get_letter(row + 2, col) == 'b':
                             num_destroyers -= 1
-                            j += 2
-                elif value == 'l':
-                    if self.get_value(j, i + 1) == 'r':
+                            row += 2
+                elif letter == 'l':
+                    if self.get_letter(row, col + 1) == 'r':
                         num_cruisers -= 1
-                    elif self.get_value(j, i + 1) == 'm':
-                        if self.get_value(j, i + 2) == 'm' \
-                                and self.get_value(j, i + 3) == 'r':
+                    elif self.get_letter(row, col + 1) == 'm':
+                        if self.get_letter(row, col + 2) == 'm' \
+                                and self.get_letter(row, col + 3) == 'r':
                             num_battleships -= 1
-                        elif self.get_value(j, i + 2) == 'r':
+                        elif self.get_letter(row, col + 2) == 'r':
                             num_destroyers -= 1
 
         return [num_submarines, num_cruisers, num_destroyers, num_battleships]
 
-    @classmethod
-    def from_board(cls, board):
-        """ este metodo foi criada para testar a funcao count_boats e serve para se conseguir ler um
-        input que contem uma board ja feita (como os .out do projeto). Deve possivelmente ser removido quando
-        o projeto for concluido. """
-        return cls(board, None, None, None, 10, 10, [], True)
-
-    def copy(self):
-        """Creates a copy of the Board."""
-        new_board = np.copy(self.board)
-        new_row_counts = self.row_counts.copy()
-        new_column_counts = self.column_counts.copy()
-        new_hints = self.hints.copy()
-        new_num_boats_to_add = self.num_boats_to_add
-        return Board(new_board, new_row_counts, new_column_counts, new_hints, self.LEN_ROW, self.LEN_COLUMN,
-                     new_num_boats_to_add, True)
-
-    def get_value(self, row: int, col: int) -> str:
-        """Devolve o valor na respetiva posição do tabuleiro."""
+    def get_letter(self, row: int, col: int) -> str:
+        """Devolve o letteror na respetiva posição do tabuleiro."""
         if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN:
             if self.board[row][col] == '*':
                 return "None"
@@ -129,38 +94,383 @@ class Board:
                 return str(self.board[row][col]).lower()
         return "None"
 
-    def set_value(self, row, col, val):
-        """Devolve um board com um novo elemento, na posição introduzida"""
-        if 0 <= row <= 9 and 0 <= col <= 9 and self.board[row][col] != 'W':
-            self.board[row][col] = val
-            if val != 'w':
-                self.row_counts[row] -= 1
-                self.column_counts[col] -= 1
-                if self.row_counts[row] == 0:
-                    self.fill_row_with_water(row)
-                if self.column_counts[col] == 0:
-                    self.fill_column_with_water(col)
-
-    def fill_row_with_water(self, row):
-        for col in range(self.LEN_COLUMN):
-            if self.get_value(row, col) == "None":
-                self.set_value(row, col, 'w')
-
-    def fill_column_with_water(self, col):
+    def process_board(self):
         for row in range(self.LEN_ROW):
-            if self.get_value(row, col) == "None":
-                self.set_value(row, col, 'w')
+            for col in range(self.LEN_COLUMN):
+                letter = self.board[row][col]
+                if letter == 'C':
+                    self.circle_single_boat_with_water(row, col)
+                elif letter == 'T':
+                    self.circle_top_of_boat_with_water(row, col)
+                elif letter == 'M':
+                    self.circle_middle_of_boat_with_water(row, col)
+                elif letter == 'B':
+                    self.circle_bottom_of_boat_with_water(row, col)
+                elif letter == 'L':
+                    self.circle_left_of_boat_with_water(row, col)
+                elif letter == 'R':
+                    self.circle_right_of_boat_with_water(row, col)
+        self.print()
+        self.fill_sections_with_water()
+        self.decipher_unknown_values()
 
     def fill_sections_with_water(self):
         """Recebe um board, nas linhas e/ou colunas onde o número de
         barcos restantes for zero, a função preenche com água"""
         for row in range(self.LEN_ROW):
-            if self.row_counts[row] == 0:
+            if self.values_to_add_row_counts[row] == 0:
                 self.fill_row_with_water(row)
 
         for col in range(self.LEN_COLUMN):
-            if self.column_counts[col] == 0:
-                self.fill_column_with_water(col)
+            if self.values_to_add_col_counts[col] == 0:
+                self.fill_col_with_water(col)
+
+    def fill_row_with_water(self, row):
+        for col in range(self.LEN_COLUMN):
+            if self.get_letter(row, col) == "None":
+                self.set_letter(row, col, 'w')
+
+    def fill_col_with_water(self, col):
+        for row in range(self.LEN_ROW):
+            if self.get_letter(row, col) == "None":
+                self.set_letter(row, col, 'w')
+
+    def set_letter(self, row, col, letter):
+        """Adiciona uma letra à board numa determinada posição caso já não exista um letra nessa posição"""
+        if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN and \
+                (self.get_letter(row, col) == "None" or self.get_letter(row, col) == 'u'):
+            if self.get_letter(row, col) == 'None':
+                self.free_col_counts[col] -= 1
+                self.free_row_counts[row] -= 1
+            self.board[row][col] = letter
+            if letter != 'w':
+                if self.values_to_add_row_counts[row] > 0:
+                    self.values_to_add_row_counts[row] -= 1
+                    if self.values_to_add_row_counts[row] == 0:
+                        self.fill_row_with_water(row)
+                if self.values_to_add_col_counts[col] > 0:
+                    self.values_to_add_col_counts[col] -= 1
+                    if self.values_to_add_col_counts[col] == 0:
+                        self.fill_col_with_water(col)
+            if self.values_to_add_row_counts[row] != 0 and \
+                    self.values_to_add_row_counts[row] == self.free_row_counts[row]:
+                self.fill_row_with_values(row)
+            if self.values_to_add_col_counts[col] != 0 and \
+                    self.values_to_add_col_counts[col] == self.free_col_counts[col]:
+                self.fill_col_with_values(col)
+
+    def is_vertical_isolated_letter(self, row, col):
+        up_letter = self.get_letter(row - 1, col)
+        down_letter = self.get_letter(row + 1, col)
+        return (up_letter == 'w' and down_letter == 'w') or \
+            (up_letter == 'w' and row + 1 == 10) or \
+            (row - 1 == -1 and down_letter == 'w')
+
+    def is_horizontal_isolated_letter(self, row, col):
+        left_letter = self.get_letter(row, col - 1)
+        right_letter = self.get_letter(row, col + 1)
+        return (left_letter == 'w' and right_letter == 'w') or \
+            (left_letter == 'w' and col + 1 == 10) or \
+            (right_letter == 'w' and col - 1 == -1)
+
+    def has_adjacent_vertical_values(self, row, col):
+        return (self.get_letter(row - 1, col) != 'w' and self.get_letter(row - 1, col) != 'None') or \
+            (self.get_letter(row + 1, col) != 'w' and self.get_letter(row + 1, col) != 'None')
+
+    def has_adjacent_horizontal_values(self, row, col):
+        return (self.get_letter(row, col - 1) != 'w' and self.get_letter(row, col - 1) != 'None') or \
+            (self.get_letter(row, col + 1) != 'w' and self.get_letter(row, col + 1) != 'None')
+
+    def replace_unknown_value(self, row, col, val):
+        self.add_value_and_circle_with_water(row, col, val)
+        if (row, col) in self.unknown_values_positions:
+            self.unknown_values_positions.remove((row, col))
+
+    def decipher_unknown_values(self):
+        # Copy needed because elements will be removed from the original list
+        unknown_values_positions_copy = self.unknown_values_positions.copy()
+        for pos_unknown in unknown_values_positions_copy:
+            row, col = pos_unknown
+            left_letter = self.get_letter(row, col - 1)
+            right_letter = self.get_letter(row, col + 1)
+            up_letter = self.get_letter(row - 1, col)
+            down_letter = self.get_letter(row + 1, col)
+
+            if self.is_horizontal_isolated_letter(row, col) or self.has_adjacent_vertical_values(row, col):
+                if self.is_vertical_isolated_letter(row, col) and self.is_horizontal_isolated_letter(row, col):
+                    self.replace_unknown_value(row, col, 'c')
+                elif up_letter == 'w' or row == 0:
+                    self.replace_unknown_value(row, col, 't')
+                elif down_letter == 'w' or row == self.LEN_ROW - 1:
+                    self.replace_unknown_value(row, col, 'b')
+                elif up_letter in ['u', 't']:
+                    if (self.get_letter(row - 2, col) == 'w' and down_letter == 'w') or \
+                            (row - 2 == -1 and down_letter == 'w') or \
+                            (self.get_letter(row - 2, col) == 'w' and row == self.LEN_ROW - 1):
+                        self.replace_unknown_value(row, col, 'b')
+                    elif down_letter in ['u', 'b', 'm']:
+                        self.replace_unknown_value(row, col, 'm')
+                elif down_letter in ['u', 'b']:
+                    if (self.get_letter(row + 2, col) == 'w' and up_letter == 'w') or \
+                            (row + 2 == 10 and up_letter == 'w') or \
+                            (self.get_letter(row + 2, col) == 'w' and row == 0):
+                        self.replace_unknown_value(row, col, 't')
+                    elif up_letter in ['u', 'm']:
+                        self.replace_unknown_value(row, col, 'm')
+                elif self.get_letter(row - 2, col) == 't':
+                    self.replace_unknown_value(row - 1, col, 'm')
+                    if down_letter == 'w' or row == self.LEN_ROW - 1:
+                        self.replace_unknown_value(row, col, 'b')
+                    elif down_letter in ['b', 'u']:
+                        self.replace_unknown_value(row, col, 'm')
+                        self.replace_unknown_value(row + 1, col, 'b')
+                elif self.get_letter(row + 2, col) == 'b':
+                    self.replace_unknown_value(row + 1, col, 'm')
+                    if up_letter == 'w' or row == 0:
+                        self.replace_unknown_value(row, col, 't')
+                    elif up_letter in ['t', 'u']:
+                        self.replace_unknown_value(row, col, 'm')
+                        self.replace_unknown_value(row - 1, col, 't')
+
+            elif self.is_vertical_isolated_letter(row, col) or self.has_adjacent_horizontal_values(row, col):
+                if self.is_horizontal_isolated_letter(row, col) and self.is_vertical_isolated_letter(row, col):
+                    self.replace_unknown_value(row, col, 'c')
+                elif left_letter == 'w' or col == 0:
+                    self.replace_unknown_value(row, col, 'l')
+                elif right_letter == 'w' or col == self.LEN_COLUMN - 1:
+                    self.replace_unknown_value(row, col, 'r')
+                elif left_letter in ['u', 'l']:
+                    if (self.get_letter(row, col - 2) == 'w' and right_letter == 'w') or \
+                            (col - 2 == -1 and right_letter == 'w') or \
+                            (self.get_letter(row, col - 2) == 'w' and col == self.LEN_COLUMN - 1):
+                        self.replace_unknown_value(row, col, 'r')
+                    elif right_letter in ['m', 'r', 'u']:
+                        self.replace_unknown_value(row, col, 'm')
+                elif right_letter in ['u', 'r']:
+                    if (self.get_letter(row, col + 2) == 'w' and left_letter == 'w') or \
+                            (col + 2 == 10 and left_letter == 'w') or \
+                            (self.get_letter(row, col + 2) == 'w' and col == 0):
+                        self.replace_unknown_value(row, col, 'l')
+                    elif left_letter in ['u', 'm']:
+                        self.replace_unknown_value(row, col, 'm')
+                elif self.get_letter(row, col - 2) == 'l':
+                    self.replace_unknown_value(row, col - 1, 'm')
+                    if right_letter == 'w' or col == self.LEN_COLUMN - 1:
+                        self.replace_unknown_value(row, col, 'r')
+                    elif right_letter == 'r' or right_letter == 'u':
+                        self.replace_unknown_value(row, col, 'm')
+                        self.replace_unknown_value(row, col + 1, 'r')
+                elif self.get_letter(row, col + 2) == 'r':
+                    self.replace_unknown_value(row, col + 1, 'm')
+                    if left_letter == 'w' or col == 0:
+                        self.replace_unknown_value(row, col, 'l')
+                    elif left_letter == 'l' or left_letter == 'u':
+                        self.replace_unknown_value(row, col, 'm')
+                        self.replace_unknown_value(row, col - 1, 'l')
+
+    def fill_row_with_values(self, row):
+        # This is does so the method is not called unnecessarily
+        self.values_to_add_row_counts[row] = 0
+        for col in range(self.LEN_COLUMN):
+            letter = self.get_letter(row, col)
+            left_letter = self.get_letter(row, col - 1)
+            right_letter = self.get_letter(row, col + 1)
+
+            if letter == "None":
+                if self.is_horizontal_isolated_letter(row, col):
+                    if self.is_vertical_isolated_letter(row, col):
+                        self.add_value_and_circle_with_water(row, col, 'c')
+                    else:
+                        self.add_value_and_circle_with_water(row, col, 'u')
+                elif left_letter == 'w':
+                    self.add_value_and_circle_with_water(row, col, 'l')
+                elif left_letter == 'l' and right_letter == 'r':
+                    self.add_value_and_circle_with_water(row, col, 'm')
+                elif left_letter == 'l':
+                    if right_letter == 'w':
+                        self.add_value_and_circle_with_water(row, col, 'r')
+                    elif right_letter == "None":
+                        self.add_value_and_circle_with_water(row, col, 'm')
+                elif left_letter == 'm':
+                    if (right_letter == 'w' or col + 1 == 10) or \
+                            (right_letter == 'r' or right_letter == "None"):
+                        self.add_value_and_circle_with_water(row, col, 'r')
+                    else:
+                        self.add_value_and_circle_with_water(row, col, 'm')
+                else:
+                    self.add_value_and_circle_with_water(row, col, 'u')
+
+    def fill_col_with_values(self, col):
+        # This is does so the method is not called unnecessarily
+        self.values_to_add_col_counts[col] = 0
+        for row in range(self.LEN_ROW):
+            letter = self.get_letter(row, col)
+            up_letter = self.get_letter(row - 1, col)
+            down_letter = self.get_letter(row + 1, col)
+            if letter == "None":
+                if self.is_vertical_isolated_letter(row, col):
+                    if self.is_horizontal_isolated_letter(row, col):
+                        self.add_value_and_circle_with_water(row, col, 'c')
+                    else:
+                        self.add_value_and_circle_with_water(row, col, 'u')
+                elif up_letter == 'w':
+                    self.add_value_and_circle_with_water(row, col, 't')
+                elif up_letter == 't' and down_letter == 'b':
+                    self.add_value_and_circle_with_water(row, col, 'm')
+                elif up_letter == 't':
+                    if down_letter == 'w':
+                        self.add_value_and_circle_with_water(row, col, 'b')
+                    elif down_letter == "None":
+                        self.add_value_and_circle_with_water(row, col, 'm')
+                elif up_letter == 'm':
+                    if (down_letter == 'w' or row + 1 == 10) or \
+                            (down_letter == 'b' or down_letter == "None"):
+                        self.add_value_and_circle_with_water(row, col, 'b')
+                    else:
+                        self.add_value_and_circle_with_water(row, col, 'm')
+                else:
+                    self.add_value_and_circle_with_water(row, col, 'u')
+
+    def add_value_and_circle_with_water(self, row, col, val):
+        self.set_letter(row, col, val)
+
+        if val == 'c':
+            self.circle_single_boat_with_water(row, col)
+            self.reduce_num_of_boats_to_add_with_size_n(1)
+        elif val == 't':
+            self.circle_top_of_boat_with_water(row, col)
+            if self.get_letter(row + 1, col) == 'b':
+                self.reduce_num_of_boats_to_add_with_size_n(2)
+            elif self.get_letter(row + 1, col) == 'm':
+                if self.get_letter(row + 2, col) == 'b':
+                    self.reduce_num_of_boats_to_add_with_size_n(3)
+                elif self.get_letter(row + 2, col) == 'm' and self.get_letter(row + 3, col) == 'b':
+                    self.reduce_num_of_boats_to_add_with_size_n(4)
+        elif val == 'm':
+            if self.get_letter(row - 1, col) == 't' and self.get_letter(row + 1, col) == 'b':
+                self.reduce_num_of_boats_to_add_with_size_n(3)
+            elif (self.get_letter(row - 1, col) == 'm' and self.get_letter(row - 2, col) == 't' and
+                  self.get_letter(row + 1, col) == 'b') or \
+                    (self.get_letter(row + 1, col) == 'm' and self.get_letter(row - 1, col) == 't' and
+                     self.get_letter(row + 2, col) == 'b'):
+                self.reduce_num_of_boats_to_add_with_size_n(4)
+            elif self.get_letter(row, col - 1) == 'l' and self.get_letter(row, col + 1) == 'r':
+                self.reduce_num_of_boats_to_add_with_size_n(3)
+            elif (self.get_letter(row, col - 1) == 'm' and self.get_letter(row, col - 2) == 'l' and
+                  self.get_letter(row, col + 1) == 'r') or \
+                    (self.get_letter(row, col + 1) == 'm' and self.get_letter(row, col - 1) == 'l' and
+                     self.get_letter(row, col + 1) == 'r'):
+                self.reduce_num_of_boats_to_add_with_size_n(4)
+        elif val == 'b':
+            self.circle_bottom_of_boat_with_water(row, col)
+            if self.get_letter(row - 1, col) == 't':
+                self.reduce_num_of_boats_to_add_with_size_n(2)
+            elif self.get_letter(row - 1, col) == 'm':
+                if self.get_letter(row - 2, col) == 't':
+                    self.reduce_num_of_boats_to_add_with_size_n(3)
+                elif self.get_letter(row - 2, col) == 'm' and self.get_letter(row - 3, col) == 't':
+                    self.reduce_num_of_boats_to_add_with_size_n(4)
+        elif val == 'l':
+            self.circle_left_of_boat_with_water(row, col)
+            if self.get_letter(row, col + 1) == 'r':
+                self.reduce_num_of_boats_to_add_with_size_n(2)
+            elif self.get_letter(row, col + 1) == 'm':
+                if self.get_letter(row, col + 2) == 'r':
+                    self.reduce_num_of_boats_to_add_with_size_n(3)
+                elif self.get_letter(row, col + 2) == 'm' and self.get_letter(row, col + 3) == 'r':
+                    self.reduce_num_of_boats_to_add_with_size_n(4)
+        elif val == 'r':
+            self.circle_right_of_boat_with_water(row, col)
+            if self.get_letter(row, col - 1) == 'l':
+                self.reduce_num_of_boats_to_add_with_size_n(2)
+            elif self.get_letter(row, col - 1) == 'm':
+                if self.get_letter(row, col - 2) == 'l':
+                    self.reduce_num_of_boats_to_add_with_size_n(3)
+                elif self.get_letter(row, col - 2) == 'm' and self.get_letter(row, col - 3) == 'l':
+                    self.reduce_num_of_boats_to_add_with_size_n(4)
+        elif val == 'u':
+            self.circle_unknown_boat_with_water(row, col)
+            self.unknown_values_positions.append((row, col))
+
+    def reduce_num_of_boats_to_add_with_size_n(self, n: int):
+        self.num_boats_to_add[n - 1] -= 1
+
+    def circle_single_boat_with_water(self, row, col):
+        self.set_letter(row - 1, col, "w")
+        self.set_letter(row + 1, col, "w")
+        self.set_letter(row, col - 1, "w")
+        self.set_letter(row, col + 1, "w")
+        self.set_letter(row - 1, col - 1, "w")
+        self.set_letter(row - 1, col + 1, "w")
+        self.set_letter(row + 1, col - 1, "w")
+        self.set_letter(row + 1, col + 1, "w")
+
+    def circle_top_of_boat_with_water(self, row, col):
+        self.set_letter(row - 1, col, "w")
+        self.set_letter(row - 1, col - 1, "w")
+        self.set_letter(row - 1, col + 1, "w")
+        self.set_letter(row, col - 1, "w")
+        self.set_letter(row, col + 1, "w")
+        self.set_letter(row + 1, col + 1, "w")
+        self.set_letter(row + 1, col - 1, "w")
+
+    def circle_middle_of_boat_with_water(self, row, col):
+        self.set_letter(row - 1, col - 1, "w")
+        self.set_letter(row - 1, col + 1, "w")
+        self.set_letter(row + 1, col - 1, "w")
+        self.set_letter(row + 1, col + 1, "w")
+
+    def circle_bottom_of_boat_with_water(self, row, col):
+        self.set_letter(row + 1, col, "w")
+        self.set_letter(row + 1, col - 1, "w")
+        self.set_letter(row + 1, col + 1, "w")
+        self.set_letter(row, col - 1, "w")
+        self.set_letter(row, col + 1, "w")
+        self.set_letter(row - 1, col + 1, "w")
+        self.set_letter(row - 1, col - 1, "w")
+
+    def circle_left_of_boat_with_water(self, row, col):
+        self.set_letter(row - 1, col - 1, "w")
+        self.set_letter(row - 1, col, "w")
+        self.set_letter(row - 1, col + 1, "w")
+        self.set_letter(row, col - 1, "w")
+        self.set_letter(row + 1, col - 1, "w")
+        self.set_letter(row + 1, col, "w")
+        self.set_letter(row + 1, col + 1, "w")
+
+    def circle_right_of_boat_with_water(self, row, col):
+        self.set_letter(row - 1, col - 1, "w")
+        self.set_letter(row - 1, col, "w")
+        self.set_letter(row - 1, col + 1, "w")
+        self.set_letter(row, col + 1, "w")
+        self.set_letter(row + 1, col - 1, "w")
+        self.set_letter(row + 1, col, "w")
+        self.set_letter(row + 1, col + 1, "w")
+
+    def circle_unknown_boat_with_water(self, row, col):
+        self.set_letter(row - 1, col - 1, "w")
+        self.set_letter(row - 1, col + 1, "w")
+        self.set_letter(row + 1, col - 1, "w")
+        self.set_letter(row + 1, col + 1, "w")
+
+    @classmethod
+    def from_board(cls, board):
+        """ este metodo foi criada para testar a funcao count_boats e serve para se conseguir ler um
+        input que contem uma board ja feita (como os .out do projeto). Deve possivelmente ser removido quando
+        o projeto for concluido. """
+        return cls(board, None, None, None, None, 10, 10, [], True)
+
+    def copy(self):
+        """Creates a copy of the Board."""
+        new_board = np.copy(self.board)
+        new_values_to_add_row_counts = self.values_to_add_row_counts.copy()
+        new_values_to_add_col_counts = self.values_to_add_col_counts.copy()
+        new_num_boats_to_add = self.num_boats_to_add
+        new_free_row_counts = self.free_row_counts.copy()
+        new_free_col_counts = self.free_col_counts
+        return Board(new_board, new_values_to_add_row_counts, new_values_to_add_col_counts, new_free_row_counts,
+                     new_free_col_counts,
+                     self.LEN_ROW, self.LEN_COLUMN, new_num_boats_to_add, True)
 
     @staticmethod
     def parse_instance():
@@ -175,8 +485,10 @@ class Board:
         """
         LEN_ROW = 10
         LEN_COLUMN = 10
-        row_counts = [int(val) for val in sys.stdin.readline().split()[1:]]
-        column_counts = [int(val) for val in sys.stdin.readline().split()[1:]]
+        values_to_add_row_counts = [int(num) for num in sys.stdin.readline().split()[1:]]
+        values_to_add_col_counts = [int(num) for num in sys.stdin.readline().split()[1:]]
+        free_row_counts = [10 for i in range(10)]
+        free_col_counts = [10 for i in range(10)]
         numOfHints = int(sys.stdin.readline())
         hints = []
         board = np.full((LEN_ROW, LEN_COLUMN), "*")
@@ -186,13 +498,16 @@ class Board:
             hints.append(tuple(hint))
 
         for hint in hints:
-            row_idx, col_idx, letter = hint
+            row, col, letter = hint
+            board[int(row)][int(col)] = letter
+            free_row_counts[int(row)] -= 1
+            free_col_counts[int(col)] -= 1
             if letter != 'W':
-                row_counts[int(row_idx)] -= 1
-                column_counts[int(col_idx)] -= 1
-            board[int(row_idx)][int(col_idx)] = letter
+                values_to_add_row_counts[int(row)] -= 1
+                values_to_add_col_counts[int(col)] -= 1
 
-        return Board(board, row_counts, column_counts, hints, LEN_ROW, LEN_COLUMN, [], False)
+        return Board(board, values_to_add_row_counts, values_to_add_col_counts, free_row_counts, free_col_counts,
+                     LEN_ROW, LEN_COLUMN, [], False)
 
     # Important still doing it. Have to do what kind of ships can be added in each position
     def possible_actions(self):
@@ -202,7 +517,7 @@ class Board:
 
         for row in range(self.LEN_ROW):
             for col in range(self.LEN_COLUMN):
-                if self.get_value(row, col) == "None":
+                if self.get_letter(row, col) == "None":
                     possible_actions.append((row, col, "t"))
                     possible_actions.append((row, col, "b"))
                     possible_actions.append((row, col, "c"))
@@ -218,132 +533,18 @@ class Board:
                 if self.board[row][col] == '*':
                     empty_spaces +=
                     available_positions.append(tuple(row,col))
-            if empty_spaces == self.row_counts:
+            if empty_spaces == self.values_to_add_row_counts:
                 for i in available_positions:
     """
 
     def is_board_fully_filled(self) -> bool:
-        for i in self.row_counts:
+        for i in self.values_to_add_row_counts:
             if i != 0:
                 return False
-        for i in self.column_counts:
+        for i in self.values_to_add_col_counts:
             if i != 0:
                 return False
         return True
-
-    def add_value_and_circle_with_water(self, action):
-        row, col, value = action
-        self.set_value(row, col, value)
-
-        if value == 'c':
-            self.circle_single_boat_with_water(row, col)
-            self.reduce_num_of_boats_to_add_with_size_n(1)
-        elif value == 't':
-            self.circle_top_of_boat_with_water(row, col)
-            if self.get_value(row + 1, col) == 'b':
-                self.reduce_num_of_boats_to_add_with_size_n(2)
-            elif self.get_value(row + 1, col) == 'm':
-                if self.get_value(row + 2, col) == 'b':
-                    self.reduce_num_of_boats_to_add_with_size_n(3)
-                elif self.get_value(row + 2, col) == 'm' and self.get_value(row + 3, col) == 'b':
-                    self.reduce_num_of_boats_to_add_with_size_n(4)
-        elif value == 'm':
-            if self.get_value(row - 1, col) == 't' and self.get_value(row + 1, col) == 'b':
-                self.reduce_num_of_boats_to_add_with_size_n(3)
-            elif (self.get_value(row - 1, col) == 'm' and self.get_value(row - 2, col) == 't' and
-                  self.get_value(row + 1, col) == 'b') or \
-                    (self.get_value(row + 1, col) == 'm' and self.get_value(row - 1, col) == 't' and
-                     self.get_value(row + 2, col) == 'b'):
-                self.reduce_num_of_boats_to_add_with_size_n(4)
-            elif self.get_value(row, col - 1) == 'l' and self.get_value(row, col + 1) == 'r':
-                self.reduce_num_of_boats_to_add_with_size_n(3)
-            elif (self.get_value(row, col - 1) == 'm' and self.get_value(row, col - 2) == 'l' and
-                  self.get_value(row, col + 1) == 'r') or \
-                    (self.get_value(row, col + 1) == 'm' and self.get_value(row, col - 1) == 'l' and
-                     self.get_value(row, col + 1) == 'r'):
-                self.reduce_num_of_boats_to_add_with_size_n(4)
-        elif value == 'b':
-            self.circle_bottom_of_boat_with_water(row, col)
-            if self.get_value(row - 1, col) == 't':
-                self.reduce_num_of_boats_to_add_with_size_n(2)
-            elif self.get_value(row - 1, col) == 'm':
-                if self.get_value(row - 2, col) == 't':
-                    self.reduce_num_of_boats_to_add_with_size_n(3)
-                elif self.get_value(row - 2, col) == 'm' and self.get_value(row - 3, col) == 't':
-                    self.reduce_num_of_boats_to_add_with_size_n(4)
-        elif value == 'l':
-            self.circle_left_of_boat_with_water(row, col)
-            if self.get_value(row, col + 1) == 'r':
-                self.reduce_num_of_boats_to_add_with_size_n(2)
-            elif self.get_value(row, col + 1) == 'm':
-                if self.get_value(row, col + 2) == 'r':
-                    self.reduce_num_of_boats_to_add_with_size_n(3)
-                elif self.get_value(row, col + 2) == 'm' and self.get_value(row, col + 3) == 'r':
-                    self.reduce_num_of_boats_to_add_with_size_n(4)
-        elif value == 'r':
-            self.circle_right_of_boat_with_water(row, col)
-            if self.get_value(row, col - 1) == 'l':
-                self.reduce_num_of_boats_to_add_with_size_n(2)
-            elif self.get_value(row, col - 1) == 'm':
-                if self.get_value(row, col - 2) == 'l':
-                    self.reduce_num_of_boats_to_add_with_size_n(3)
-                elif self.get_value(row, col - 2) == 'm' and self.get_value(row, col - 3) == 'l':
-                    self.reduce_num_of_boats_to_add_with_size_n(4)
-
-    def circle_single_boat_with_water(self, row, col):
-        self.set_value(row - 1, col, "w")
-        self.set_value(row + 1, col, "w")
-        self.set_value(row, col - 1, "w")
-        self.set_value(row, col + 1, "w")
-        self.set_value(row - 1, col - 1, "w")
-        self.set_value(row - 1, col + 1, "w")
-        self.set_value(row + 1, col - 1, "w")
-        self.set_value(row + 1, col + 1, "w")
-
-    def circle_top_of_boat_with_water(self, row, col):
-        self.set_value(row - 1, col, "w")
-        self.set_value(row - 1, col - 1, "w")
-        self.set_value(row - 1, col + 1, "w")
-        self.set_value(row, col - 1, "w")
-        self.set_value(row, col + 1, "w")
-        self.set_value(row + 1, col + 1, "w")
-        self.set_value(row + 1, col - 1, "w")
-
-    def circle_middle_of_boat_with_water(self, row, col):
-        self.set_value(row - 1, col - 1, "w")
-        self.set_value(row - 1, col + 1, "w")
-        self.set_value(row + 1, col - 1, "w")
-        self.set_value(row + 1, col + 1, "w")
-
-    def circle_bottom_of_boat_with_water(self, row, col):
-        self.set_value(row + 1, col, "w")
-        self.set_value(row + 1, col - 1, "w")
-        self.set_value(row + 1, col + 1, "w")
-        self.set_value(row, col - 1, "w")
-        self.set_value(row, col + 1, "w")
-        self.set_value(row - 1, col - 1, "w")
-        self.set_value(row - 1, col + 1, "w")
-
-    def circle_left_of_boat_with_water(self, row, col):
-        self.set_value(row - 1, col - 1, "w")
-        self.set_value(row - 1, col, "w")
-        self.set_value(row - 1, col + 1, "w")
-        self.set_value(row, col - 1, "w")
-        self.set_value(row + 1, col - 1, "w")
-        self.set_value(row + 1, col, "w")
-        self.set_value(row + 1, col + 1, "w")
-
-    def circle_right_of_boat_with_water(self, row, col):
-        self.set_value(row - 1, col - 1, "w")
-        self.set_value(row - 1, col, "w")
-        self.set_value(row - 1, col + 1, "w")
-        self.set_value(row, col + 1, "w")
-        self.set_value(row + 1, col - 1, "w")
-        self.set_value(row + 1, col, "w")
-        self.set_value(row + 1, col + 1, "w")
-
-    def reduce_num_of_boats_to_add_with_size_n(self, n: int):
-        self.num_boats_to_add[n - 1] -= 1
 
     # Para ser usado no "possible positions"
     def is_there_any_boats_with_size_n_to_add(self, n: int):
@@ -372,21 +573,20 @@ class Bimaru(Problem):
         """O construtor especifica o estado inicial."""
         state = BimaruState(board)
         super().__init__(state)
-        pass
 
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
         return state.board.possible_actions()
-        pass
 
     def result(self, state: BimaruState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
+        row, col, letter = action
         new_board = state.board.copy()
-        new_board.add_value_and_circle_with_water(action)
+        new_board.add_value_and_circle_with_water(row, col, letter)
         return BimaruState(new_board)
 
     def goal_test(self, state: BimaruState) -> bool:
@@ -394,12 +594,10 @@ class Bimaru(Problem):
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas de acordo com as regras do problema."""
         return state.board.is_board_fully_filled() and state.board.num_boats_to_add == [0, 0, 0, 0]
-        pass
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
         # TODO
-        pass
     # TODO: outros metodos da classe
 
 
@@ -415,14 +613,15 @@ if __name__ == "__main__":
     problem = Bimaru(board)
     # Criar um estado com a configuração inicial:
     initial_state = BimaruState(board)
-    # Mostrar valor na posição (3, 3):
-    print(initial_state.board.get_value(3, 3))
-    # Realizar acção de inserir o valor w (água) na posição da linha 3 e coluna 3
+    # Mostrar letteror na posição (3, 3):
+    print(initial_state.board.get_letter(3, 3))
+    # Realizar acção de inserir o letteror w (água) na posição da linha 3 e coluna 3
     result_state = problem.result(initial_state, (3, 3, 'w'))
-    # Mostrar valor na posição (3, 3):
-    print(result_state.board.get_value(3, 3))
+    # Mostrar letteror na posição (3, 3):
+    print(result_state.board.get_letter(3, 3))
     result_state.board.print_board() """
 
+    """"
     # Exemplo 3
     # Criar uma instância de Bimaru:
     problem = Bimaru(board)
@@ -456,8 +655,6 @@ if __name__ == "__main__":
     print("Is goal?", problem.goal_test(s15))
     print("Solution:\n", s15.board.print(), sep="")
 
-    """
-    board.process_board()
     problem = Bimaru(board)
     # Obter o nó solução usando a procura em profundidade:
     goal_node = depth_first_tree_search(problem)
@@ -465,4 +662,13 @@ if __name__ == "__main__":
     print("Is goal?", problem.goal_test(goal_node.state))
     print("Solution:\n", goal_node.state.board.print(), sep="")
     """
+    board.print()
+    problem = Bimaru(board)
+    initial_state = BimaruState(board)
+    print("COLUNA", initial_state.board.values_to_add_col_counts)
+    print("LINHA", initial_state.board.values_to_add_row_counts)
+    print("FREE COLUNA", board.free_col_counts)
+    print("FREE LINHA", board.free_row_counts)
+    print(initial_state.board.num_boats_to_add)
+    print(problem.goal_test(initial_state))
     pass

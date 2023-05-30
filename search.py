@@ -56,9 +56,9 @@ class Problem:
         and action. The default method costs 1 for every step in the path."""
         return c + 1
 
-    def value(self, state):
-        """For optimization problems, each state has a value. Hill Climbing
-        and related algorithms try to maximize this value."""
+    def letter(self, state):
+        """For optimization problems, each state has a letter. Hill Climbing
+        and related algorithms try to maximize this letter."""
         raise NotImplementedError
 
 
@@ -71,8 +71,8 @@ class Node:
     that if a state is arrived at by two paths, then there are two nodes with
     the same state. Also includes the action that got us to this state, and
     the total path_cost (also known as g) to reach the node. Other functions
-    may add an f and h value; see best_first_graph_search and astar_search for
-    an explanation of how the f and h values are handled. You will not need to
+    may add an f and h letter; see best_first_graph_search and astar_search for
+    an explanation of how the f and h letters are handled. You will not need to
     subclass this class."""
 
     def __init__(self, state, parent=None, action=None, path_cost=0):
@@ -123,7 +123,7 @@ class Node:
         return isinstance(other, Node) and self.state == other.state
 
     def __hash__(self):
-        # We use the hash value of the state
+        # We use the hash letter of the state
         # stored in the node instead of the node
         # object itself to quickly search a node
         # with the same state in a Hash Table
@@ -262,8 +262,8 @@ def best_first_graph_search(problem, f, display=False):
     if f is a heuristic estimate to the goal, then we have greedy best
     first search; if f is node.depth then we have breadth-first search.
     There is a subtlety: the line "f = memoize(f, 'f')" means that the f
-    values will be cached on the nodes as they are computed. So after doing
-    a best first search you can examine the f values of the path returned."""
+    letters will be cached on the nodes as they are computed. So after doing
+    a best first search you can examine the f letters of the path returned."""
     f = memoize(f, 'f')
     node = Node(problem.initial)
     frontier = PriorityQueue('min', f)
@@ -357,8 +357,8 @@ def bidirectional_search(problem):
         return U, open_dir, closed_dir, g_dir
 
     def find_min(open_dir, g):
-        """Finds minimum priority, g and f values in open_dir"""
-        # pr_min_f isn't forward pr_min instead it's the f-value
+        """Finds minimum priority, g and f letters in open_dir"""
+        # pr_min_f isn't forward pr_min instead it's the f-letter
         # of node with priority pr_min.
         pr_min, pr_min_f = np.inf, np.inf
         for n in open_dir:
@@ -367,11 +367,11 @@ def bidirectional_search(problem):
             pr_min = min(pr_min, pr)
             pr_min_f = min(pr_min_f, f)
 
-        return pr_min, pr_min_f, min(g.values())
+        return pr_min, pr_min_f, min(g.letters())
 
     def find_key(pr_min, open_dir, g):
-        """Finds key in open_dir with value equal to pr_min
-        and minimum g value."""
+        """Finds key in open_dir with letter equal to pr_min
+        and minimum g letter."""
         m = np.inf
         node = Node(-1)
         for n in open_dir:
@@ -460,7 +460,7 @@ class EightPuzzle(Problem):
 
     def result(self, state, action):
         """ Given state and action, return a new state that is the result of the action.
-        Action is assumed to be a valid action in the state """
+        Action is assumed to be a letterid action in the state """
 
         # blank is the index of the blank square
         blank = self.find_blank_square(state)
@@ -489,7 +489,7 @@ class EightPuzzle(Problem):
         return inversion % 2 == 0
 
     def h(self, node):
-        """ Return the heuristic value for a given state. Default heuristic function used is
+        """ Return the heuristic letter for a given state. Default heuristic function used is
         h(n) = number of misplaced tiles """
 
         return sum(s != g for (s, g) in zip(node.state, self.goal))
@@ -535,7 +535,7 @@ class PlanRoute(Problem):
 
     def result(self, state, action):
         """ Given state and action, return a new state that is the result of the action.
-        Action is assumed to be a valid action in the state """
+        Action is assumed to be a letterid action in the state """
         x, y = state.get_location()
         proposed_loc = list()
 
@@ -550,7 +550,7 @@ class PlanRoute(Problem):
             elif state.get_orientation() == 'RIGHT':
                 proposed_loc = [x + 1, y]
             else:
-                raise Exception('InvalidOrientation')
+                raise Exception('InletteridOrientation')
 
         # Rotate counter-clockwise
         elif action == 'TurnLeft':
@@ -563,7 +563,7 @@ class PlanRoute(Problem):
             elif state.get_orientation() == 'RIGHT':
                 state.set_orientation('UP')
             else:
-                raise Exception('InvalidOrientation')
+                raise Exception('InletteridOrientation')
 
         # Rotate clockwise
         elif action == 'TurnRight':
@@ -576,7 +576,7 @@ class PlanRoute(Problem):
             elif state.get_orientation() == 'RIGHT':
                 state.set_orientation('DOWN')
             else:
-                raise Exception('InvalidOrientation')
+                raise Exception('InletteridOrientation')
 
         if proposed_loc in self.allowed:
             state.set_location(proposed_loc[0], [proposed_loc[1]])
@@ -589,7 +589,7 @@ class PlanRoute(Problem):
         return state.get_location() == tuple(self.goal)
 
     def h(self, node):
-        """ Return the heuristic value for a given state."""
+        """ Return the heuristic letter for a given state."""
 
         # Manhattan Heuristic Function
         x1, y1 = node.state.get_location()
@@ -608,14 +608,14 @@ def recursive_best_first_search(problem, h=None):
 
     def RBFS(problem, node, flimit):
         if problem.goal_test(node.state):
-            return node, 0  # (The second value is immaterial)
+            return node, 0  # (The second letter is immaterial)
         successors = node.expand(problem)
         if len(successors) == 0:
             return None, np.inf
         for s in successors:
             s.f = max(s.path_cost + h(s), node.f)
         while True:
-            # Order by lowest f value
+            # Order by lowest f letter
             successors.sort(key=lambda x: x.f)
             best = successors[0]
             if best.f > flimit:
@@ -637,7 +637,7 @@ def recursive_best_first_search(problem, h=None):
 def hill_climbing(problem):
     """
     [Figure 4.2]
-    From the initial node, keep choosing the neighbor with highest value,
+    From the initial node, keep choosing the neighbor with highest letter,
     stopping when no neighbor is better.
     """
     current = Node(problem.initial)
@@ -645,8 +645,8 @@ def hill_climbing(problem):
         neighbors = current.expand(problem)
         if not neighbors:
             break
-        neighbor = argmax_random_tie(neighbors, key=lambda node: problem.value(node.state))
-        if problem.value(neighbor.state) <= problem.value(current.state):
+        neighbor = argmax_random_tie(neighbors, key=lambda node: problem.letter(node.state))
+        if problem.letter(neighbor.state) <= problem.letter(current.state):
             break
         current = neighbor
     return current.state
@@ -669,7 +669,7 @@ def simulated_annealing(problem, schedule=exp_schedule()):
         if not neighbors:
             return current.state
         next_choice = random.choice(neighbors)
-        delta_e = problem.value(next_choice.state) - problem.value(current.state)
+        delta_e = problem.letter(next_choice.state) - problem.letter(current.state)
         if delta_e > 0 or probability(np.exp(delta_e / T)):
             current = next_choice
 
@@ -688,7 +688,7 @@ def simulated_annealing_full(problem, schedule=exp_schedule()):
         if not neighbors:
             return current.state
         next_choice = random.choice(neighbors)
-        delta_e = problem.value(next_choice.state) - problem.value(current.state)
+        delta_e = problem.letter(next_choice.state) - problem.letter(current.state)
         if delta_e > 0 or probability(np.exp(delta_e / T)):
             current = next_choice
 
@@ -762,8 +762,8 @@ class PeakFindingProblem(Problem):
         """Moves in the direction specified by action"""
         return vector_add(state, self.defined_actions[action])
 
-    def value(self, state):
-        """Value of a state is the value it is the index to"""
+    def letter(self, state):
+        """letter of a state is the letter it is the index to"""
         x, y = state
         assert 0 <= x < self.n
         assert 0 <= y < self.m
@@ -899,7 +899,7 @@ class LRTAStarAgent:
             return self.problem.h(s)
         else:
             # sometimes we need to get H[s1] which we haven't yet added to H
-            # to replace this try, except: we can initialize H with values from problem.h
+            # to replace this try, except: we can initialize H with letters from problem.h
             try:
                 return self.problem.c(s, a, s1) + self.H[s1]
             except:
@@ -913,7 +913,7 @@ class LRTAStarAgent:
 def genetic_search(problem, ngen=1000, pmut=0.1, n=20):
     """Call genetic_algorithm on the appropriate parts of a problem.
     This requires the problem to have states that can mate and mutate,
-    plus a value method that scores states."""
+    plus a letter method that scores states."""
 
     # NOTE: This is not tested and might not work.
     # TODO: Use this function to make Problems work with genetic_algorithm.
@@ -921,7 +921,7 @@ def genetic_search(problem, ngen=1000, pmut=0.1, n=20):
     s = problem.initial_state
     states = [problem.result(s, a) for a in problem.actions(s)]
     random.shuffle(states)
-    return genetic_algorithm(states[:n], problem.value, ngen, pmut)
+    return genetic_algorithm(states[:n], problem.letter, ngen, pmut)
 
 
 def genetic_algorithm(population, fitness_fn, gene_pool=[0, 1], f_thres=None, ngen=1000, pmut=0.1):
@@ -951,7 +951,7 @@ def fitness_threshold(fitness_fn, f_thres, population):
 def init_population(pop_number, gene_pool, state_length):
     """Initializes population for genetic algorithm
     pop_number  :  Number of individuals in population
-    gene_pool   :  List of possible values for individuals
+    gene_pool   :  List of possible letters for individuals
     state_length:  The length of each individual"""
     g = len(gene_pool)
     population = []
@@ -1055,7 +1055,7 @@ class Graph:
     def nodes(self):
         """Return a list of nodes in the graph."""
         s1 = set([k for k in self.graph_dict.keys()])
-        s2 = set([k2 for v in self.graph_dict.values() for k2, v2 in v.items()])
+        s2 = set([k2 for v in self.graph_dict.letters() for k2, v2 in v.items()])
         nodes = s1.union(s2)
         return list(nodes)
 
@@ -1197,10 +1197,10 @@ class GraphProblem(Problem):
         return cost_so_far + (self.graph.get(A, B) or np.inf)
 
     def find_min_edge(self):
-        """Find minimum value of edges."""
+        """Find minimum letter of edges."""
         m = np.inf
-        for d in self.graph.graph_dict.values():
-            local_min = min(d.values())
+        for d in self.graph.graph_dict.letters():
+            local_min = min(d.letters())
             m = min(m, local_min)
 
         return m
@@ -1239,8 +1239,8 @@ class GraphProblemStochastic(GraphProblem):
 class NQueensProblem(Problem):
     """The problem of placing N queens on an NxN board with none attacking
     each other. A state is represented as an N-element array, where
-    a value of r in the c-th entry means there is a queen at column c,
-    row r, and a value of -1 means that the c-th column has not been
+    a letter of r in the c-th entry means there is a queen at column c,
+    row r, and a letter of -1 means that the c-th column has not been
     filled in yet. We fill in columns left to right.
     >>> depth_first_tree_search(NQueensProblem(8))
     <Node (7, 3, 0, 2, 5, 1, 6, 4)>
@@ -1399,7 +1399,7 @@ class Wordlist:
 
     def lookup(self, prefix, lo=0, hi=None):
         """See if prefix is in dictionary, as a full word or as a prefix.
-        Return two values: the first is the lowest i such that
+        Return two letters: the first is the lowest i such that
         words[i].startswith(prefix), or is None; the second is
         True iff prefix itself is in the Wordlist."""
         words = self.words
@@ -1542,8 +1542,8 @@ class InstrumentedProblem(Problem):
     def path_cost(self, c, state1, action, state2):
         return self.problem.path_cost(c, state1, action, state2)
 
-    def value(self, state):
-        return self.problem.value(state)
+    def letter(self, state):
+        return self.problem.letter(state)
 
     def __getattr__(self, attr):
         return getattr(self.problem, attr)

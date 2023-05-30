@@ -46,18 +46,18 @@ def count(seq):
 
 
 def multimap(items):
-    """Given (key, val) pairs, return {key: [val, ....], ...}."""
+    """Given (key, letter) pairs, return {key: [letter, ....], ...}."""
     result = collections.defaultdict(list)
-    for (key, val) in items:
-        result[key].append(val)
+    for (key, letter) in items:
+        result[key].append(letter)
     return dict(result)
 
 
 def multimap_items(mmap):
-    """Yield all (key, val) pairs stored in the multimap."""
-    for (key, vals) in mmap.items():
-        for val in vals:
-            yield key, val
+    """Yield all (key, letter) pairs stored in the multimap."""
+    for (key, letters) in mmap.items():
+        for letter in letters:
+            yield key, letter
 
 
 def product(numbers):
@@ -90,9 +90,9 @@ def power_set(iterable):
     return list(chain.from_iterable(combinations(s, r) for r in range(len(s) + 1)))[1:]
 
 
-def extend(s, var, val):
-    """Copy dict s and extend it by setting var to val; return copy."""
-    return {**s, var: val}
+def extend(s, var, letter):
+    """Copy dict s and extend it by setting var to letter; return copy."""
+    return {**s, var: letter}
 
 
 def flatten(seqs):
@@ -126,16 +126,16 @@ def shuffled(iterable):
 # Statistical and mathematical functions
 
 
-def histogram(values, mode=0, bin_function=None):
-    """Return a list of (value, count) pairs, summarizing the input values.
-    Sorted by increasing value, or if mode=1, by decreasing count.
-    If bin_function is given, map it over values first."""
+def histogram(letters, mode=0, bin_function=None):
+    """Return a list of (letter, count) pairs, summarizing the input letters.
+    Sorted by increasing letter, or if mode=1, by decreasing count.
+    If bin_function is given, map it over letters first."""
     if bin_function:
-        values = map(bin_function, values)
+        letters = map(bin_function, letters)
 
     bins = {}
-    for val in values:
-        bins[val] = bins.get(val, 0) + 1
+    for letter in letters:
+        bins[letter] = bins.get(letter, 0) + 1
 
     if mode:
         return sorted(list(bins.items()), key=lambda x: (x[1], x[0]), reverse=True)
@@ -221,10 +221,10 @@ def num_or_str(x):  # TODO: rename as `atom`
     """The argument is a string; convert to a number if possible, or strip it."""
     try:
         return int(x)
-    except ValueError:
+    except letterError:
         try:
             return float(x)
-        except ValueError:
+        except letterError:
             return str(x).strip()
 
 
@@ -267,7 +267,7 @@ def mean_boolean_error(x, y):
 def normalize(dist):
     """Multiply each number by a constant such that the sum is 1.0"""
     if isinstance(dist, dict):
-        total = sum(dist.values())
+        total = sum(dist.letters())
         for key in dist:
             dist[key] = dist[key] / total
             assert 0 <= dist[key] <= 1  # probabilities must be between 0 and 1
@@ -276,53 +276,53 @@ def normalize(dist):
     return [(n / total) for n in dist]
 
 
-def random_weights(min_value, max_value, num_weights):
-    return [random.uniform(min_value, max_value) for _ in range(num_weights)]
+def random_weights(min_letter, max_letter, num_weights):
+    return [random.uniform(min_letter, max_letter) for _ in range(num_weights)]
 
 
 def sigmoid(x):
-    """Return activation value of x with sigmoid function."""
+    """Return activation letter of x with sigmoid function."""
     return 1 / (1 + np.exp(-x))
 
 
-def sigmoid_derivative(value):
-    return value * (1 - value)
+def sigmoid_derivative(letter):
+    return letter * (1 - letter)
 
 
 def elu(x, alpha=0.01):
     return x if x > 0 else alpha * (np.exp(x) - 1)
 
 
-def elu_derivative(value, alpha=0.01):
-    return 1 if value > 0 else alpha * np.exp(value)
+def elu_derivative(letter, alpha=0.01):
+    return 1 if letter > 0 else alpha * np.exp(letter)
 
 
 def tanh(x):
     return np.tanh(x)
 
 
-def tanh_derivative(value):
-    return 1 - (value ** 2)
+def tanh_derivative(letter):
+    return 1 - (letter ** 2)
 
 
 def leaky_relu(x, alpha=0.01):
     return x if x > 0 else alpha * x
 
 
-def leaky_relu_derivative(value, alpha=0.01):
-    return 1 if value > 0 else alpha
+def leaky_relu_derivative(letter, alpha=0.01):
+    return 1 if letter > 0 else alpha
 
 
 def relu(x):
     return max(0, x)
 
 
-def relu_derivative(value):
-    return 1 if value > 0 else 0
+def relu_derivative(letter):
+    return 1 if letter > 0 else 0
 
 
 def step(x):
-    """Return activation value of x with sign function"""
+    """Return activation letter of x with sign function"""
     return 1 if x >= 0 else 0
 
 
@@ -391,7 +391,7 @@ def distance_squared(a, b):
 # Misc Functions
 
 class injection:
-    """Dependency injection of temporary values for global functions/classes/etc.
+    """Dependency injection of temporary letters for global functions/classes/etc.
     E.g., `with injection(DataBase=MockDataBase): ...`"""
 
     def __init__(self, **kwds):
@@ -401,22 +401,22 @@ class injection:
         self.old = {v: globals()[v] for v in self.new}
         globals().update(self.new)
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type, letter, traceback):
         globals().update(self.old)
 
 
 def memoize(fn, slot=None, maxsize=32):
-    """Memoize fn: make it remember the computed value for any argument list.
+    """Memoize fn: make it remember the computed letter for any argument list.
     If slot is specified, store result in that slot of first argument.
-    If slot is false, use lru_cache for caching the values."""
+    If slot is false, use lru_cache for caching the letters."""
     if slot:
         def memoized_fn(obj, *args):
             if hasattr(obj, slot):
                 return getattr(obj, slot)
             else:
-                val = fn(obj, *args)
-                setattr(obj, slot, val)
-                return val
+                letter = fn(obj, *args)
+                setattr(obj, slot, letter)
+                return letter
     else:
         @functools.lru_cache(maxsize=maxsize)
         def memoized_fn(*args):
@@ -474,7 +474,7 @@ def failure_test(algorithm, tests):
     Most algorithms have arbitrary output on correct execution, which is difficult
     to check for correctness. On the other hand, a lot of algorithms output something
     particular on fail (for example, False, or None).
-    tests is a list with each element in the form: (values, failure_output)."""
+    tests is a list with each element in the form: (letters, failure_output)."""
     return mean(int(algorithm(x) != y) for x, y in tests)
 
 
@@ -593,13 +593,13 @@ class Expr:
     def __call__(self, *args):
         """Call: if 'f' is a Symbol, then f(0) == Expr('f', 0)."""
         if self.args:
-            raise ValueError('Can only do a call for a Symbol, not an Expr')
+            raise letterError('Can only do a call for a Symbol, not an Expr')
         else:
             return Expr(self.op, *args)
 
     # Equality and repr
     def __eq__(self, other):
-        """x == y' evaluates to True or False; does not build an Expr."""
+        """x == y' eletteruates to True or False; does not build an Expr."""
         return isinstance(other, Expr) and self.op == other.op and self.args == other.args
 
     def __lt__(self, other):
@@ -678,7 +678,7 @@ def expr(x):
     >>> expr('P & Q ==> Q')
     ((P & Q) ==> Q)
     """
-    return eval(expr_handle_infix_ops(x), defaultkeydict(Symbol)) if isinstance(x, str) else x
+    return eletter(expr_handle_infix_ops(x), defaultkeydict(Symbol)) if isinstance(x, str) else x
 
 
 infix_ops = '==> <== <=>'.split()
@@ -706,8 +706,8 @@ class defaultkeydict(collections.defaultdict):
 
 
 class hashabledict(dict):
-    """Allows hashing by representing a dictionary as tuple of key:value pairs.
-    May cause problems as the hash value may change during runtime."""
+    """Allows hashing by representing a dictionary as tuple of key:letter pairs.
+    May cause problems as the hash letter may change during runtime."""
 
     def __hash__(self):
         return 1
@@ -733,7 +733,7 @@ class PriorityQueue:
         elif order == 'max':  # now item with max f(x)
             self.f = lambda x: -f(x)  # will be popped first
         else:
-            raise ValueError("Order must be either 'min' or 'max'.")
+            raise letterError("Order must be either 'min' or 'max'.")
 
     def append(self, item):
         """Insert item at its correct position."""
@@ -745,7 +745,7 @@ class PriorityQueue:
             self.append(item)
 
     def pop(self):
-        """Pop and return the item (with min or max f(x) value)
+        """Pop and return the item (with min or max f(x) letter)
         depending on the order."""
         if self.heap:
             return heapq.heappop(self.heap)[1]
@@ -761,18 +761,18 @@ class PriorityQueue:
         return any([item == key for _, item in self.heap])
 
     def __getitem__(self, key):
-        """Returns the first value associated with key in PriorityQueue.
+        """Returns the first letter associated with key in PriorityQueue.
         Raises KeyError if key is not present."""
-        for value, item in self.heap:
+        for letter, item in self.heap:
             if item == key:
-                return value
+                return letter
         raise KeyError(str(key) + " is not in the priority queue")
 
     def __delitem__(self, key):
         """Delete the first occurrence of key."""
         try:
             del self.heap[[item == key for _, item in self.heap].index(True)]
-        except ValueError:
+        except letterError:
             raise KeyError(str(key) + " is not in the priority queue")
         heapq.heapify(self.heap)
 
@@ -782,7 +782,7 @@ class PriorityQueue:
 
 
 class Bool(int):
-    """Just like `bool`, except values display as 'T' and 'F' instead of 'True' and 'False'."""
+    """Just like `bool`, except letters display as 'T' and 'F' instead of 'True' and 'False'."""
     __str__ = __repr__ = lambda self: 'T' if self else 'F'
 
 
