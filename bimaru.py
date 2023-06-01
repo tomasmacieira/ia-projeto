@@ -48,7 +48,7 @@ class Board:
             self.num_boats_to_add = num_boats_to_add
         else:
             self.num_boats_to_add = self.count_boats_to_add()
-            self.process_board()
+            self.process_board(True)
 
     def count_boats_to_add(self) -> list:
         num_submarines = 4
@@ -94,39 +94,43 @@ class Board:
                 return str(self.board[row][col]).lower()
         return "None"
 
-    def process_board(self):
+    def process_board(self, redo):
         for row in range(self.LEN_ROW):
             for col in range(self.LEN_COLUMN):
                 letter = self.board[row][col]
+                up_letter = self.get_letter(row - 1, col)
+                down_letter = self.get_letter(row + 1, col)
+                left_letter = self.get_letter(row, col - 1)
+                right_letter = self.get_letter(row, col + 1)
                 if letter == 'C':
                     self.circle_single_boat_with_water(row, col)
+                    if redo:
+                        self.reduce_num_of_boats_to_add_with_size_n(1)
                 elif letter == 'T':
                     self.circle_top_of_boat_with_water(row, col)
+                    self.add_value_and_circle_with_water(row + 1, col, 'u')
                 elif letter == 'M':
                     self.circle_middle_of_boat_with_water(row, col)
+                    if up_letter == 'w' or row == 0 or down_letter == 'w' or row == 9 or \
+                            self.has_adjacent_horizontal_values(row, col):
+                        self.add_value_and_circle_with_water(row, col - 1, 'u')
+                        self.add_value_and_circle_with_water(row, col + 1, 'u')
+                    elif left_letter == 'w' or col == 0 or right_letter == 'w' or col == 9 or \
+                            self.has_adjacent_vertical_values(row, col):
+                        self.add_value_and_circle_with_water(row - 1, col, 'u')
+                        self.add_value_and_circle_with_water(row + 1, col, 'u')
                 elif letter == 'B':
                     self.circle_bottom_of_boat_with_water(row, col)
+                    self.add_value_and_circle_with_water(row - 1, col, 'u')
                 elif letter == 'L':
                     self.circle_left_of_boat_with_water(row, col)
+                    self.add_value_and_circle_with_water(row, col + 1, 'u')
                 elif letter == 'R':
                     self.circle_right_of_boat_with_water(row, col)
-        #self.print()
-        self.fill_sections_with_water()
-        self.decipher_unknown_values()
-
-    def get_horizontal_values(self, row, col):
-        return (self.get_letter(row, col - 1), self.get_letter(row, col + 1))
-    
-    def get_vertical_values(self, row, col):
-        return (self.get_letter(row - 1, col), self.get_letter(row + 1, col))
-    
-    def get_diagonal_values(self, row, col):
-        return (
-            self.get_letter(row - 1, col - 1),
-            self.get_letter(row + 1, col - 1),
-            self.get_letter(row - 1, col + 1),
-            self.get_letter(row + 1, col + 1)
-        )
+                    self.add_value_and_circle_with_water(row, col - 1, 'u')
+        if redo:
+            self.fill_sections_with_water()
+            self.process_board(False)
 
     def fill_sections_with_water(self):
         """Recebe um board, nas linhas e/ou colunas onde o número de
@@ -150,42 +154,56 @@ class Board:
                 self.set_letter(row, col, 'w')
 
     def set_letter(self, row, col, letter):
-        """Adiciona uma letra à board numa determinada posição caso já não exista um letra nessa posição"""
+        """Adiciona uma letra à board numa determinada posição caso já não exista um letra nessa posição,
+        retorna True caso a letra seja adicionada com sucesso"""
         if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN and \
                 (self.get_letter(row, col) == "None" or self.get_letter(row, col) == 'u'):
-            if self.get_letter(row, col) == 'None':
+            to_replace = self.get_letter(row, col)
+            changed_col = False
+            changed_row = False
+            if to_replace == 'u' and letter == 'u':
+                return False
+            if to_replace == 'None':
                 self.free_col_counts[col] -= 1
                 self.free_row_counts[row] -= 1
             self.board[row][col] = letter
-            if letter != 'w':
+            if letter == 'u':
+                self.unknown_values_positions.append((row, col))
+            if letter != 'w' and to_replace != 'u':
                 if self.values_to_add_row_counts[row] > 0:
                     self.values_to_add_row_counts[row] -= 1
-                    if self.values_to_add_row_counts[row] == 0:
-                        self.fill_row_with_water(row)
+                    changed_row = True
                 if self.values_to_add_col_counts[col] > 0:
                     self.values_to_add_col_counts[col] -= 1
-                    if self.values_to_add_col_counts[col] == 0:
-                        self.fill_col_with_water(col)
+                    changed_col = True
+                if self.values_to_add_row_counts[row] == 0 and changed_row:
+                    self.fill_row_with_water(row)
+                if self.values_to_add_col_counts[col] == 0 and changed_col:
+                    self.fill_col_with_water(col)
             if self.values_to_add_row_counts[row] != 0 and \
                     self.values_to_add_row_counts[row] == self.free_row_counts[row]:
-                self.fill_row_with_values(row)
+                self.fill_row_with_unknowns(row)
             if self.values_to_add_col_counts[col] != 0 and \
                     self.values_to_add_col_counts[col] == self.free_col_counts[col]:
-                self.fill_col_with_values(col)
+                self.fill_col_with_unknowns(col)
+            self.decipher_unknown_values()
+            return True
+        else:
+            return False
 
     def is_vertical_isolated_letter(self, row, col):
         up_letter = self.get_letter(row - 1, col)
         down_letter = self.get_letter(row + 1, col)
         return (up_letter == 'w' and down_letter == 'w') or \
-            (up_letter == 'w' and row + 1 == 10) or \
-            (row - 1 == -1 and down_letter == 'w')
+            (up_letter == 'w' and row == 9) or \
+            (row == 0 and down_letter == 'w')
 
     def is_horizontal_isolated_letter(self, row, col):
         left_letter = self.get_letter(row, col - 1)
         right_letter = self.get_letter(row, col + 1)
         return (left_letter == 'w' and right_letter == 'w') or \
-            (left_letter == 'w' and col + 1 == 10) or \
-            (right_letter == 'w' and col - 1 == -1)
+            (left_letter == 'w' and col == 9) or \
+            (right_letter == 'w' and col == 0)
 
     def has_adjacent_vertical_values(self, row, col):
         return (self.get_letter(row - 1, col) != 'w' and self.get_letter(row - 1, col) != 'None') or \
@@ -213,394 +231,121 @@ class Board:
             if self.is_horizontal_isolated_letter(row, col) or self.has_adjacent_vertical_values(row, col):
                 if self.is_vertical_isolated_letter(row, col) and self.is_horizontal_isolated_letter(row, col):
                     self.replace_unknown_value(row, col, 'c')
-                elif up_letter == 'w' or row == 0:
+                elif (up_letter == 'w' or row == 0) and down_letter in ['u', 'm', 'b']:
                     self.replace_unknown_value(row, col, 't')
-                elif down_letter == 'w' or row == self.LEN_ROW - 1:
+                elif (down_letter == 'w' or row == self.LEN_ROW - 1) and up_letter in ['u', 'm', 't']:
                     self.replace_unknown_value(row, col, 'b')
-                elif up_letter in ['u', 't']:
-                    if (self.get_letter(row - 2, col) == 'w' and down_letter == 'w') or \
-                            (row - 2 == -1 and down_letter == 'w') or \
-                            (self.get_letter(row - 2, col) == 'w' and row == self.LEN_ROW - 1):
-                        self.replace_unknown_value(row, col, 'b')
-                    elif down_letter in ['u', 'b', 'm']:
-                        self.replace_unknown_value(row, col, 'm')
-                elif down_letter in ['u', 'b']:
-                    if (self.get_letter(row + 2, col) == 'w' and up_letter == 'w') or \
-                            (row + 2 == 10 and up_letter == 'w') or \
-                            (self.get_letter(row + 2, col) == 'w' and row == 0):
-                        self.replace_unknown_value(row, col, 't')
-                    elif up_letter in ['u', 'm']:
-                        self.replace_unknown_value(row, col, 'm')
+                elif up_letter in ['u', 'm', 't'] and down_letter in ['u', 'm', 'b']:
+                    self.replace_unknown_value(row, col, 'm')
                 elif self.get_letter(row - 2, col) == 't':
                     self.replace_unknown_value(row - 1, col, 'm')
                     if down_letter == 'w' or row == self.LEN_ROW - 1:
                         self.replace_unknown_value(row, col, 'b')
-                    elif down_letter in ['b', 'u']:
+                    elif down_letter in ['u', 'b']:
                         self.replace_unknown_value(row, col, 'm')
                         self.replace_unknown_value(row + 1, col, 'b')
                 elif self.get_letter(row + 2, col) == 'b':
                     self.replace_unknown_value(row + 1, col, 'm')
                     if up_letter == 'w' or row == 0:
                         self.replace_unknown_value(row, col, 't')
-                    elif up_letter in ['t', 'u']:
+                    elif up_letter in ['u', 't']:
                         self.replace_unknown_value(row, col, 'm')
                         self.replace_unknown_value(row - 1, col, 't')
-
             elif self.is_vertical_isolated_letter(row, col) or self.has_adjacent_horizontal_values(row, col):
                 if self.is_horizontal_isolated_letter(row, col) and self.is_vertical_isolated_letter(row, col):
                     self.replace_unknown_value(row, col, 'c')
-                elif left_letter == 'w' or col == 0:
+                elif (left_letter == 'w' or col == 0) and right_letter in ['u', 'm', 'r']:
                     self.replace_unknown_value(row, col, 'l')
-                elif right_letter == 'w' or col == self.LEN_COLUMN - 1:
+                elif (right_letter == 'w' or col == self.LEN_COLUMN - 1) and left_letter in ['u', 'm', 'l']:
                     self.replace_unknown_value(row, col, 'r')
-                elif left_letter in ['u', 'l']:
-                    if (self.get_letter(row, col - 2) == 'w' and right_letter == 'w') or \
-                            (col - 2 == -1 and right_letter == 'w') or \
-                            (self.get_letter(row, col - 2) == 'w' and col == self.LEN_COLUMN - 1):
-                        self.replace_unknown_value(row, col, 'r')
-                    elif right_letter in ['m', 'r', 'u']:
-                        self.replace_unknown_value(row, col, 'm')
-                elif right_letter in ['u', 'r']:
-                    if (self.get_letter(row, col + 2) == 'w' and left_letter == 'w') or \
-                            (col + 2 == 10 and left_letter == 'w') or \
-                            (self.get_letter(row, col + 2) == 'w' and col == 0):
-                        self.replace_unknown_value(row, col, 'l')
-                    elif left_letter in ['u', 'm']:
-                        self.replace_unknown_value(row, col, 'm')
+                elif left_letter in ['u', 'm', 'l'] and right_letter in ['u', 'm', 'r']:
+                    self.replace_unknown_value(row, col, 'm')
                 elif self.get_letter(row, col - 2) == 'l':
                     self.replace_unknown_value(row, col - 1, 'm')
                     if right_letter == 'w' or col == self.LEN_COLUMN - 1:
                         self.replace_unknown_value(row, col, 'r')
-                    elif right_letter == 'r' or right_letter == 'u':
+                    elif right_letter in ['u', 'r']:
                         self.replace_unknown_value(row, col, 'm')
                         self.replace_unknown_value(row, col + 1, 'r')
                 elif self.get_letter(row, col + 2) == 'r':
                     self.replace_unknown_value(row, col + 1, 'm')
                     if left_letter == 'w' or col == 0:
                         self.replace_unknown_value(row, col, 'l')
-                    elif left_letter == 'l' or left_letter == 'u':
+                    elif left_letter in ['u', 'l']:
                         self.replace_unknown_value(row, col, 'm')
                         self.replace_unknown_value(row, col - 1, 'l')
 
-    def fill_row_with_values(self, row):
+    def fill_row_with_unknowns(self, row):
         # This is does so the method is not called unnecessarily
         self.values_to_add_row_counts[row] = 0
         for col in range(self.LEN_COLUMN):
             letter = self.get_letter(row, col)
-            left_letter = self.get_letter(row, col - 1)
-            right_letter = self.get_letter(row, col + 1)
-
             if letter == "None":
-                if self.is_horizontal_isolated_letter(row, col):
-                    if self.is_vertical_isolated_letter(row, col):
-                        self.add_value_and_circle_with_water(row, col, 'c')
-                    else:
-                        self.add_value_and_circle_with_water(row, col, 'u')
-                elif left_letter == 'w':
-                    self.add_value_and_circle_with_water(row, col, 'l')
-                elif left_letter == 'l' and right_letter == 'r':
-                    self.add_value_and_circle_with_water(row, col, 'm')
-                elif left_letter == 'l':
-                    if right_letter == 'w':
-                        self.add_value_and_circle_with_water(row, col, 'r')
-                    elif right_letter == "None":
-                        self.add_value_and_circle_with_water(row, col, 'm')
-                elif left_letter == 'm':
-                    if (right_letter == 'w' or col + 1 == 10) or \
-                            (right_letter == 'r' or right_letter == "None"):
-                        self.add_value_and_circle_with_water(row, col, 'r')
-                    else:
-                        self.add_value_and_circle_with_water(row, col, 'm')
-                else:
-                    self.add_value_and_circle_with_water(row, col, 'u')
+                self.add_value_and_circle_with_water(row, col, 'u')
 
-    def apply_action(self, action):
-        type, direction, row, col = action
-
-        #Put battleship
-        if type == 4:
-            if direction == "h":
-                self.add_value_and_circle_with_water((row, col , "t"))
-                self.add_value_and_circle_with_water((row + 1, col , "m"))
-                self.add_value_and_circle_with_water((row + 2, col , "m"))
-                self.add_value_and_circle_with_water((row + 3, col , "b"))
-            elif  direction == "v":
-                self.add_value_and_circle_with_water((row, col, "l"))
-                self.add_value_and_circle_with_water((row, col + 1 , "m"))
-                self.add_value_and_circle_with_water((row, col + 2, "m"))
-                self.add_value_and_circle_with_water((row, col + 3, "r"))
-        
-        if type == 3:
-            if direction == "h":
-                self.add_value_and_circle_with_water((row, col , "t"))
-                self.add_value_and_circle_with_water((row + 1, col , "m"))
-                self.add_value_and_circle_with_water((row + 2, col , "b"))
-            if direction == "v":
-                self.add_value_and_circle_with_water((row, col , "l"))
-                self.add_value_and_circle_with_water((row, col + 1 , "m"))
-                self.add_value_and_circle_with_water((row, col + 2, "r"))
-        
-        if type == 2:
-            if direction == "h":
-                self.add_value_and_circle_with_water((row, col , "t"))
-                self.add_value_and_circle_with_water((row + 1, col , "b"))
-            if direction == "v":
-                self.add_value_and_circle_with_water((row, col + 1 , "l"))
-                self.add_value_and_circle_with_water((row, col + 2, "r"))
-        
-        if type == 1:
-            self.add_value_and_circle_with_water((row, col, "c"))
-
-    def check_border(self, row, col, val, direction):
-        """Recebe uma peça e as suas coordenadas. Devolve true caso esteja rodeada por agua, 
-        de acordo com a peça em questão, false caso contrario"""
-
-        if val == 'c':
-            return all(value in ("None", "w") for value in self.get_horizontal_values(row, col)) and \
-                all(value in ("None", "w") for value in self.get_vertical_values(row, col)) and \
-                all(value in ("None", "w") for value in self.get_diagonal_values(row, col))
-
-        if val == 'm':
-            if direction == "h":
-                return all(value in ("None", "w") for value in self.get_vertical_values(row, col)) and \
-                    all(value in ("None", "w") for value in self.get_diagonal_values(row, col))
-
-            if direction == "v":
-                return all(value in ("None", "w") for value in self.get_horizontal_values(row, col)) and \
-                    all(value in ("None", "w") for value in self.get_diagonal_values(row, col))
-
-        if val == "t":
-            return all(value in ("None", "w") for value in (self.get_letter(row - 1, col),)) and \
-                all(value in ("None", "w") for value in self.get_horizontal_values(row, col)) and \
-                all(value in ("None", "w") for value in self.get_diagonal_values(row, col))
-
-
-        if val == "b":
-            return self.get_letter(row + 1, col) == "None" and \
-                self.get_horizontal_values(row, col) == ("None", "None") and \
-                self.get_diagonal_values(row, col) == ("None", "None", "None", "None")
-
-        if val == "l":
-            return self.get_letter(row, col - 1) == "None" and \
-                self.get_vertical_values(row, col) == ("None", "None") and \
-                self.get_diagonal_values(row, col) == ("None", "None", "None", "None")
-
-        if val == "r":
-            return self.get_letter(row, col + 1) == "None" and \
-                self.get_vertical_values(row, col) == ("None", "None") and \
-                self.get_diagonal_values(row, col) == ("None", "None", "None", "None")
-    
-        if val == "None":
-
-            if direction == "v":
-
-                return all(value in ("None", "w") for value in self.get_diagonal_values(row, col)) and \
-                    all(value in ("None", "w","t") for value in (self.get_letter(row - 1, col),)) and \
-                    all(value in ("None", "w","b") for value in (self.get_letter(row + 1, col),)) and \
-                    all(value in ("None", "w") for value in (self.get_letter(row, col - 1),)) and \
-                    all(value in ("None", "w") for value in (self.get_letter(row, col + 1),))
-        
-            if direction == "h":
-                return all(value in ("None", "w") for value in self.get_diagonal_values(row, col)) and \
-                    all(value in ("None", "w") for value in (self.get_letter(row - 1, col),)) and \
-                    all(value in ("None", "w") for value in (self.get_letter(row + 1, col),)) and \
-                    all(value in ("None", "w","l") for value in (self.get_letter(row, col - 1),)) and \
-                    all(value in ("None", "w","r") for value in (self.get_letter(row, col + 1),))
-        
-
-    def biggest_boat_positions(self):
-        biggest_boat_pos = []
-
-        for row in range(self.LEN_ROW):
-            for col in range(self.LEN_COLUMN):
-                #Search positions that fit a battleship
-                if self.count_boats_to_add()[3] > 0:
-                    #Vertical
-                    if self.values_to_add_col_counts[col] > 3 and ((self.get_letter(row, col) == "t" and self.check_border(row, col, "t", "v"))\
-                            or (self.get_letter(row, col) == "None" and self.check_border(row, col, "None", "v"))) \
-                            and self.values_to_add_row_counts[row] != 0 and self.get_letter(row - 1, col) != 't':
-                        
-                        if row < 7 and ((self.get_letter(row + 1, col) == "None" and self.check_border(row + 1, col, "None", "v"))\
-                                or (self.get_letter(row + 1, col) == "m" and self.check_border(row + 1, col, "m", "v"))) \
-                                and self.values_to_add_row_counts[row + 1] != 0:
-                            
-                            if ((self.get_letter(row + 2, col) == "None" and self.check_border(row + 2, col, "None", "v"))\
-                                    or (self.get_letter(row + 2, col) == "m") and self.check_border(row + 2, col, "m", "v")) \
-                                    and self.values_to_add_row_counts[row + 2] != 0:
-                                
-                                if ((self.get_letter(row + 3, col) == "None" and self.check_border(row + 3, col, "None", "v"))\
-                                        or (self.get_letter(row + 3, col) == "b" and self.check_border(row + 3, col, "b", "v"))) \
-                                        and self.values_to_add_row_counts[row + 3] != 0:
-                                            biggest_boat_pos.append((4, "v", row, col))
-
-                    #Horizontal
-                    if self.values_to_add_row_counts[row] > 3 and ((self.get_letter(row, col) == "None" and self.check_border(row, col, "None", "h"))\
-                            or (self.get_letter(row, col) == "l" and self.check_border(row, col, "l", "h")))\
-                            and self.values_to_add_col_counts[col] != 0 and self.get_letter(row, col - 1) != "l":
-                        
-                        if col < 7 and ((self.get_letter(row, col + 1) == "None" and self.check_border(row, col + 1, "None", "h"))\
-                                or (self.get_letter(row, col + 1) == "m" and self.check_border(row, col + 1, "m", "h")))\
-                                and self.values_to_add_col_counts[col + 1] != 0:
-                            
-                            if ((self.get_letter(row, col + 2) == "None"  and self.check_border(row, col + 2, "None", "h"))\
-                                    or (self.get_letter(row, col + 2) == "m") and self.check_border(row, col + 2, "m", "h"))\
-                                    and self.values_to_add_col_counts[col + 2] != 0:
-
-                                if ((self.get_letter(row, col + 3) == "None" and self.check_border(row, col + 3, "None", "h"))\
-                                        or (self.get_letter(row, col + 3) == "r" and self.check_border(row, col + 3, "r", "h")))\
-                                        and self.values_to_add_col_counts[col + 3] != 0:
-                                            biggest_boat_pos.append((4,"h",row,col))
-
-                #Search positions that fit a cruiser
-                elif self.count_boats_to_add()[2] > 0:
-                    #Vertical
-                    if self.values_to_add_col_counts[col] > 2 and ((self.get_letter(row, col) == "t" and self.check_border(row, col, "t", "v"))\
-                            or (self.get_letter(row, col) == "None" and self.check_border(row, col, "None", "v"))) \
-                            and self.values_to_add_row_counts[row] != 0 and self.get_letter(row - 1, col) != 't':
-                        
-                        if row < 8 and ((self.get_letter(row + 1, col) == "None" and self.check_border(row + 1, col, "None", "v"))\
-                                or (self.get_letter(row + 1, col) == "m" and self.check_border(row + 1, col, "m", "v"))) \
-                                and self.values_to_add_row_counts[row + 1] != 0:
-
-                            if ((self.get_letter(row + 2, col) == "None" and self.check_border(row + 2, col, "None", "v"))\
-                                    or (self.get_letter(row + 2, col) == "b") and self.check_border(row + 2, col, "b", "v")) \
-                                    and self.values_to_add_row_counts[row + 2] != 0:
-                                        biggest_boat_pos.append((3, "v", row,col))
-
-                    if self.values_to_add_row_counts[row] > 2 and ((self.get_letter(row, col) == "None" and self.check_border(row, col, "None", "h"))\
-                            or (self.get_letter(row, col) == "l" and self.check_border(row, col, "l", "h")))\
-                            and self.values_to_add_col_counts[col] != 0 and self.get_letter(row, col - 1) != "l":
-                            
-                        if col < 8 and ((self.get_letter(row, col + 1) == "None" and self.check_border(row, col + 1, "None", "h"))\
-                                or (self.get_letter(row, col + 1) == "m" and self.check_border(row, col + 1, "m", "h")))\
-                                and self.values_to_add_col_counts[col + 1] != 0:
-
-                            if ((self.get_letter(row, col + 2) == "None"  and self.check_border(row, col + 2, "None", "h"))\
-                                    or (self.get_letter(row, col + 2) == "r") and self.check_border(row, col + 2, "r", "h"))\
-                                    and self.values_to_add_col_counts[col + 2] != 0:
-                                        biggest_boat_pos.append((3,"h",row,col))
-
-                #Search positions that fit a destroyer
-                elif self.count_boats_to_add()[1] > 0:
-                    #Vertical
-                    if self.values_to_add_col_counts[col] > 1 and ((self.get_letter(row, col) == "t" and self.check_border(row, col, "t", "v"))\
-                            or (self.get_letter(row, col) == "None" and self.check_border(row, col, "None", "v"))) \
-                            and self.values_to_add_row_counts[row] != 0 and self.get_letter(row - 1, col) != 't':
-                        
-                        if row < 9 and ((self.get_letter(row + 1, col) == "None" and self.check_border(row + 1, col, "None", "v"))\
-                                or (self.get_letter(row + 1, col) == "b" and self.check_border(row + 1, col, "b", "v"))) \
-                                and self.values_to_add_row_counts[row + 1] != 0:
-                                biggest_boat_pos.append((2, "v", row,col))
-
-                    if self.values_to_add_row_counts[row] > 1 and ((self.get_letter(row, col) == "None" and self.check_border(row, col, "None", "h"))\
-                            or (self.get_letter(row, col) == "l" and self.check_border(row, col, "l", "h")))\
-                            and self.values_to_add_col_counts[col] != 0 and self.get_letter(row, col - 1) != "l":
-                        
-                        if col < 9 and ((self.get_letter(row, col + 1) == "None" and self.check_border(row, col + 1, "None", "h"))\
-                                or (self.get_letter(row, col + 1) == "r" and self.check_border(row, col + 1, "r", "h")))\
-                                and self.values_to_add_col_counts[col + 1] != 0:                                       
-                                biggest_boat_pos.append((2,"h",row,col))
-                
-                #Search positions that fit a submarine
-                elif self.count_boats_to_add()[0] > 0:
-                    if self.values_to_add_col_counts[col] > 0 and self.get_letter(row, col) == "None" and self.check_border(row, col, "None" ,"v")\
-                        and self.values_to_add_row_counts[row] != 0:
-                        biggest_boat_pos.append((1, "v", row,col))
-
-        return biggest_boat_pos
-
-
-    def fill_col_with_values(self, col):
+    def fill_col_with_unknowns(self, col):
         # This is does so the method is not called unnecessarily
         self.values_to_add_col_counts[col] = 0
         for row in range(self.LEN_ROW):
             letter = self.get_letter(row, col)
-            up_letter = self.get_letter(row - 1, col)
-            down_letter = self.get_letter(row + 1, col)
             if letter == "None":
-                if self.is_vertical_isolated_letter(row, col):
-                    if self.is_horizontal_isolated_letter(row, col):
-                        self.add_value_and_circle_with_water(row, col, 'c')
-                    else:
-                        self.add_value_and_circle_with_water(row, col, 'u')
-                elif up_letter == 'w':
-                    self.add_value_and_circle_with_water(row, col, 't')
-                elif up_letter == 't' and down_letter == 'b':
-                    self.add_value_and_circle_with_water(row, col, 'm')
-                elif up_letter == 't':
-                    if down_letter == 'w':
-                        self.add_value_and_circle_with_water(row, col, 'b')
-                    elif down_letter == "None":
-                        self.add_value_and_circle_with_water(row, col, 'm')
-                elif up_letter == 'm':
-                    if (down_letter == 'w' or row + 1 == 10) or \
-                            (down_letter == 'b' or down_letter == "None"):
-                        self.add_value_and_circle_with_water(row, col, 'b')
-                    else:
-                        self.add_value_and_circle_with_water(row, col, 'm')
-                else:
-                    self.add_value_and_circle_with_water(row, col, 'u')
+                self.add_value_and_circle_with_water(row, col, 'u')
 
     def add_value_and_circle_with_water(self, row, col, val):
-        self.set_letter(row, col, val)
-
-        if val == 'c':
-            self.circle_single_boat_with_water(row, col)
-            self.reduce_num_of_boats_to_add_with_size_n(1)
-        elif val == 't':
-            self.circle_top_of_boat_with_water(row, col)
-            if self.get_letter(row + 1, col) == 'b':
-                self.reduce_num_of_boats_to_add_with_size_n(2)
-            elif self.get_letter(row + 1, col) == 'm':
-                if self.get_letter(row + 2, col) == 'b':
+        if self.set_letter(row, col, val):
+            if val == 'c':
+                self.circle_single_boat_with_water(row, col)
+                self.reduce_num_of_boats_to_add_with_size_n(1)
+            elif val == 't':
+                self.circle_top_of_boat_with_water(row, col)
+                if self.get_letter(row + 1, col) == 'b':
+                    self.reduce_num_of_boats_to_add_with_size_n(2)
+                elif self.get_letter(row + 1, col) == 'm':
+                    if self.get_letter(row + 2, col) == 'b':
+                        self.reduce_num_of_boats_to_add_with_size_n(3)
+                    elif self.get_letter(row + 2, col) == 'm' and self.get_letter(row + 3, col) == 'b':
+                        self.reduce_num_of_boats_to_add_with_size_n(4)
+            elif val == 'm':
+                self.circle_middle_of_boat_with_water(row, col)
+                if (self.get_letter(row - 1, col) == 't' and self.get_letter(row + 1, col) == 'b') or \
+                        self.get_letter(row, col - 1) == 'l' and self.get_letter(row, col + 1) == 'r':
                     self.reduce_num_of_boats_to_add_with_size_n(3)
-                elif self.get_letter(row + 2, col) == 'm' and self.get_letter(row + 3, col) == 'b':
+                elif (self.get_letter(row - 1, col) == 'm' and self.get_letter(row - 2, col) == 't' and
+                      self.get_letter(row + 1, col) == 'b') or (self.get_letter(row + 1, col) == 'm' and
+                      self.get_letter(row - 1, col) == 't' and self.get_letter(row + 2, col) == 'b') or \
+                        ((self.get_letter(row, col - 1) == 'm' and self.get_letter(row, col - 2) == 'l' and
+                          self.get_letter(row, col + 1) == 'r') or (self.get_letter(row, col + 1) == 'm' and
+                        self.get_letter(row, col - 1) == 'l' and self.get_letter(row, col + 1) == 'r')):
                     self.reduce_num_of_boats_to_add_with_size_n(4)
-        elif val == 'm':
-            if self.get_letter(row - 1, col) == 't' and self.get_letter(row + 1, col) == 'b':
-                self.reduce_num_of_boats_to_add_with_size_n(3)
-            elif (self.get_letter(row - 1, col) == 'm' and self.get_letter(row - 2, col) == 't' and
-                  self.get_letter(row + 1, col) == 'b') or \
-                    (self.get_letter(row + 1, col) == 'm' and self.get_letter(row - 1, col) == 't' and
-                     self.get_letter(row + 2, col) == 'b'):
-                self.reduce_num_of_boats_to_add_with_size_n(4)
-            elif self.get_letter(row, col - 1) == 'l' and self.get_letter(row, col + 1) == 'r':
-                self.reduce_num_of_boats_to_add_with_size_n(3)
-            elif (self.get_letter(row, col - 1) == 'm' and self.get_letter(row, col - 2) == 'l' and
-                  self.get_letter(row, col + 1) == 'r') or \
-                    (self.get_letter(row, col + 1) == 'm' and self.get_letter(row, col - 1) == 'l' and
-                     self.get_letter(row, col + 1) == 'r'):
-                self.reduce_num_of_boats_to_add_with_size_n(4)
-        elif val == 'b':
-            self.circle_bottom_of_boat_with_water(row, col)
-            if self.get_letter(row - 1, col) == 't':
-                self.reduce_num_of_boats_to_add_with_size_n(2)
-            elif self.get_letter(row - 1, col) == 'm':
-                if self.get_letter(row - 2, col) == 't':
-                    self.reduce_num_of_boats_to_add_with_size_n(3)
-                elif self.get_letter(row - 2, col) == 'm' and self.get_letter(row - 3, col) == 't':
-                    self.reduce_num_of_boats_to_add_with_size_n(4)
-        elif val == 'l':
-            self.circle_left_of_boat_with_water(row, col)
-            if self.get_letter(row, col + 1) == 'r':
-                self.reduce_num_of_boats_to_add_with_size_n(2)
-            elif self.get_letter(row, col + 1) == 'm':
-                if self.get_letter(row, col + 2) == 'r':
-                    self.reduce_num_of_boats_to_add_with_size_n(3)
-                elif self.get_letter(row, col + 2) == 'm' and self.get_letter(row, col + 3) == 'r':
-                    self.reduce_num_of_boats_to_add_with_size_n(4)
-        elif val == 'r':
-            self.circle_right_of_boat_with_water(row, col)
-            if self.get_letter(row, col - 1) == 'l':
-                self.reduce_num_of_boats_to_add_with_size_n(2)
-            elif self.get_letter(row, col - 1) == 'm':
-                if self.get_letter(row, col - 2) == 'l':
-                    self.reduce_num_of_boats_to_add_with_size_n(3)
-                elif self.get_letter(row, col - 2) == 'm' and self.get_letter(row, col - 3) == 'l':
-                    self.reduce_num_of_boats_to_add_with_size_n(4)
-        elif val == 'u':
-            self.circle_unknown_boat_with_water(row, col)
-            self.unknown_values_positions.append((row, col))
+            elif val == 'b':
+                self.circle_bottom_of_boat_with_water(row, col)
+                if self.get_letter(row - 1, col) == 't':
+                    self.reduce_num_of_boats_to_add_with_size_n(2)
+                elif self.get_letter(row - 1, col) == 'm':
+                    if self.get_letter(row - 2, col) == 't':
+                        self.reduce_num_of_boats_to_add_with_size_n(3)
+                    elif self.get_letter(row - 2, col) == 'm' and self.get_letter(row - 3, col) == 't':
+                        self.reduce_num_of_boats_to_add_with_size_n(4)
+            elif val == 'l':
+                self.circle_left_of_boat_with_water(row, col)
+                if self.get_letter(row, col + 1) == 'r':
+                    self.reduce_num_of_boats_to_add_with_size_n(2)
+                elif self.get_letter(row, col + 1) == 'm':
+                    if self.get_letter(row, col + 2) == 'r':
+                        self.reduce_num_of_boats_to_add_with_size_n(3)
+                    elif self.get_letter(row, col + 2) == 'm' and self.get_letter(row, col + 3) == 'r':
+                        self.reduce_num_of_boats_to_add_with_size_n(4)
+            elif val == 'r':
+                self.circle_right_of_boat_with_water(row, col)
+                if self.get_letter(row, col - 1) == 'l':
+                    self.reduce_num_of_boats_to_add_with_size_n(2)
+                elif self.get_letter(row, col - 1) == 'm':
+                    if self.get_letter(row, col - 2) == 'l':
+                        self.reduce_num_of_boats_to_add_with_size_n(3)
+                    elif self.get_letter(row, col - 2) == 'm' and self.get_letter(row, col - 3) == 'l':
+                        self.reduce_num_of_boats_to_add_with_size_n(4)
+            elif val == 'u':
+                self.circle_unknown_boat_with_water(row, col)
 
     def reduce_num_of_boats_to_add_with_size_n(self, n: int):
         self.num_boats_to_add[n - 1] -= 1
@@ -640,8 +385,8 @@ class Board:
         self.set_letter(row - 1, col - 1, "w")
 
     def circle_left_of_boat_with_water(self, row, col):
-        self.set_letter(row - 1, col - 1, "w")
         self.set_letter(row - 1, col, "w")
+        self.set_letter(row - 1, col - 1, "w")
         self.set_letter(row - 1, col + 1, "w")
         self.set_letter(row, col - 1, "w")
         self.set_letter(row + 1, col - 1, "w")
@@ -649,8 +394,8 @@ class Board:
         self.set_letter(row + 1, col + 1, "w")
 
     def circle_right_of_boat_with_water(self, row, col):
-        self.set_letter(row - 1, col - 1, "w")
         self.set_letter(row - 1, col, "w")
+        self.set_letter(row - 1, col - 1, "w")
         self.set_letter(row - 1, col + 1, "w")
         self.set_letter(row, col + 1, "w")
         self.set_letter(row + 1, col - 1, "w")
@@ -697,8 +442,8 @@ class Board:
         LEN_COLUMN = 10
         values_to_add_row_counts = [int(num) for num in sys.stdin.readline().split()[1:]]
         values_to_add_col_counts = [int(num) for num in sys.stdin.readline().split()[1:]]
-        free_row_counts = [10 for i in range(10)]
-        free_col_counts = [10 for i in range(10)]
+        free_row_counts = [10 for _ in range(10)]
+        free_col_counts = [10 for _ in range(10)]
         numOfHints = int(sys.stdin.readline())
         hints = []
         board = np.full((LEN_ROW, LEN_COLUMN), "*")
@@ -774,17 +519,16 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        return state.board.biggest_boat_positions()
-        pass
+        return state.board.possible_actions()
 
     def result(self, state: BimaruState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        print(state.state_id, action)
+        row, col, letter = action
         new_board = state.board.copy()
-        new_board.apply_action(action)
+        new_board.add_value_and_circle_with_water(row, col, letter)
         return BimaruState(new_board)
 
     def goal_test(self, state: BimaruState) -> bool:
@@ -803,18 +547,64 @@ if __name__ == "__main__":
     # TODO:
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
-
     board = Board.parse_instance()
-    # Criar uma instância de Bimaru:
-    #board.print()
-    #print(board.biggest_boat_positions())
-    board.print()
-    print(board.biggest_boat_positions())
 
-    """problem = Bimaru(board)
+    # Exemplo 2
+    """"
+    # Criar uma instância de Bimaru:
+    problem = Bimaru(board)
+    # Criar um estado com a configuração inicial:
+    initial_state = BimaruState(board)
+    # Mostrar letteror na posição (3, 3):
+    print(initial_state.board.get_letter(3, 3))
+    # Realizar acção de inserir o letteror w (água) na posição da linha 3 e coluna 3
+    result_state = problem.result(initial_state, (3, 3, 'w'))
+    # Mostrar letteror na posição (3, 3):
+    print(result_state.board.get_letter(3, 3))
+    result_state.board.print_board() """
+
+    """"
+    # Exemplo 3
+    # Criar uma instância de Bimaru:
+    problem = Bimaru(board)
+    # Criar um estado com a configuração inicial:
+    s0 = BimaruState(board)
+    print("Estado inicial da board:")
+    s0.board.print()
+
+    # Aplicar as ações que resolvem a instância
+    s1 = problem.result(s0, (0, 6, 't'))
+    s2 = problem.result(s1, (1, 0, 'b'))
+    s3 = problem.result(s2, (1, 9, 't'))
+    s4 = problem.result(s3, (2, 6, 'b'))
+    s5 = problem.result(s4, (2, 9, 'm'))
+    s6 = problem.result(s5, (3, 9, 'm'))
+    s7 = problem.result(s6, (4, 0, 'c'))
+    s8 = problem.result(s7, (4, 7, 'c'))
+    s9 = problem.result(s8, (4, 9, 'b'))
+    s10 = problem.result(s9, (6, 4, 't'))
+    s11 = problem.result(s10, (7, 0, 't'))
+    s12 = problem.result(s11, (7, 4, 'b'))
+    s13 = problem.result(s12, (7, 8, 't'))
+    s14 = problem.result(s13, (8, 0, 'm'))
+    s15 = problem.result(s14, (9, 0, 'b'))
+    # ...
+    # não estão aqui apresentadas todas as ações
+    # considere que s15 contém a solução final
+    # Verificar se foi atingida a soluçãoz`
+    print("Is goal?", problem.goal_test(s5))
+    s5.board.print()
+    print("Is goal?", problem.goal_test(s15))
+    print("Solution:\n", s15.board.print(), sep="")
+
+    problem = Bimaru(board)
     # Obter o nó solução usando a procura em profundidade:
-    goal_node = breadth_first_tree_search(problem)
+    goal_node = depth_first_tree_search(problem)
     # Verificar se foi atingida a solução
     print("Is goal?", problem.goal_test(goal_node.state))
     print("Solution:\n", goal_node.state.board.print(), sep="")
-    pass"""
+    """
+    problem = Bimaru(board)
+    initial_state = BimaruState(board)
+    board.print()
+    pass
