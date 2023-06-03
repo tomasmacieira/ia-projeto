@@ -44,7 +44,7 @@ class Board:
         self.unknown_vals_pos = unknown_vals_pos
         self.LEN_ROW = len_row
         self.LEN_COLUMN = len_column
-        print(self)
+        # print(self)
         if isCopy:
             self.num_boats_to_add = num_boats_to_add
         else:
@@ -138,7 +138,6 @@ class Board:
         for row in range(self.LEN_ROW):
             if self.num_vals_to_add_row[row] == 0:
                 self.fill_row_with_water(row)
-
         for col in range(self.LEN_COLUMN):
             if self.num_vals_to_add_col[col] == 0:
                 self.fill_col_with_water(col)
@@ -169,13 +168,13 @@ class Board:
             self.board[row][col] = letter
             if letter == 'u':
                 self.unknown_vals_pos.append((row, col))
-            print("COLUNA", self.num_vals_to_add_col)
+            """print("COLUNA", self.num_vals_to_add_col)
             print("LINHA", self.num_vals_to_add_row)
             print("FREE COLUNA", self.free_col_counts)
             print("FREE LINHA", self.free_row_counts)
             print("UNKNOWNS", self.unknown_vals_pos)
             print("BOATS", self.num_boats_to_add)
-            print(self)
+            print(self)"""
             # if letter != 'w':
             #   self.try_to_reduce_num_boats_to_add(row, col, letter)
             if letter != 'w' and to_replace != 'u':
@@ -231,13 +230,14 @@ class Board:
             (left_letter == 'w' and col == 9) or \
             (right_letter == 'w' and col == 0)
 
+    def is_value(self, row, col):
+        return self.get_letter(row, col) != 'w' and self.get_letter(row, col) != 'None'
+
     def has_adjacent_vertical_vals(self, row, col):
-        return (self.get_letter(row - 1, col) != 'w' and self.get_letter(row - 1, col) != 'None') or \
-            (self.get_letter(row + 1, col) != 'w' and self.get_letter(row + 1, col) != 'None')
+        return self.is_value(row - 1, col) or self.is_value(row + 1, col)
 
     def has_adjacent_horizontal_vals(self, row, col):
-        return (self.get_letter(row, col - 1) != 'w' and self.get_letter(row, col - 1) != 'None') or \
-            (self.get_letter(row, col + 1) != 'w' and self.get_letter(row, col + 1) != 'None')
+        return self.is_value(col - 1, row) or self.is_value(col + 1, row)
 
     def has_adjacent_vals(self, row, col):
         return self.has_adjacent_horizontal_vals(row, col) or self.has_adjacent_vertical_vals(row, col)
@@ -258,13 +258,13 @@ class Board:
             down_letter = self.get_letter(row + 1, col)
 
             if self.is_horizontal_isolated_letter(row, col) or self.has_adjacent_vertical_vals(row, col):
-                if self.is_horizontal_isolated_letter(row, col) and \
-                        (self.is_vertical_isolated_letter(row, col) or
-                         (not self.has_adjacent_vertical_vals(row, col) and self.num_vals_to_add_col[col] == 1)):
+                if self.is_horizontal_isolated_letter(row, col) and self.is_vertical_isolated_letter(row, col):
                     self.replace_unknown_value(row, col, 'c')
-                elif (up_letter == 'w' or row == 0) and down_letter in ['u', 'm', 'b']:
+                elif down_letter in ['u', 'm', 'b'] and ((up_letter == 'w' or row == 0) or
+                    (up_letter == "None" and self.is_value(row - 2, col) and self.get_letter(row - 2, col) != 't')):
                     self.replace_unknown_value(row, col, 't')
-                elif (down_letter == 'w' or row == self.LEN_ROW - 1) and up_letter in ['u', 'm', 't']:
+                elif up_letter in ['u', 'm', 't'] and ((down_letter == 'w' or row == self.LEN_ROW - 1) or
+                    (down_letter == "None" and self.is_value(row + 2, col) and self.get_letter(row + 2, col) != 'b')):
                     self.replace_unknown_value(row, col, 'b')
                 elif up_letter in ['u', 'm', 't'] and down_letter in ['u', 'm', 'b']:
                     self.replace_unknown_value(row, col, 'm')
@@ -284,13 +284,13 @@ class Board:
                         self.replace_unknown_value(row - 1, col, 't')
 
             elif self.is_vertical_isolated_letter(row, col) or self.has_adjacent_horizontal_vals(row, col):
-                if self.is_vertical_isolated_letter(row, col) and \
-                        (self.is_horizontal_isolated_letter(row, col) or
-                         (not self.has_adjacent_horizontal_vals(row, col) and self.num_vals_to_add_row[row] == 1)):
+                if self.is_vertical_isolated_letter(row, col) and self.is_horizontal_isolated_letter(row, col):
                     self.replace_unknown_value(row, col, 'c')
-                elif (left_letter == 'w' or col == 0) and right_letter in ['u', 'm', 'r']:
+                elif right_letter in ['u', 'm', 'r'] and (left_letter == 'w' or col == 0 or
+                    (left_letter == "None" and self.is_value(row, col - 2) and self.get_letter(row, col - 2) != 'l')):
                     self.replace_unknown_value(row, col, 'l')
-                elif (right_letter == 'w' or col == self.LEN_COLUMN - 1) and left_letter in ['u', 'm', 'l']:
+                elif left_letter in ['u', 'm', 'l'] and (right_letter == 'w' or col == self.LEN_COLUMN - 1 or
+                    (right_letter == "None" and self.is_value(row, col + 2) and self.get_letter(row, col + 2) != 'r')):
                     self.replace_unknown_value(row, col, 'r')
                 elif left_letter in ['u', 'm', 'l'] and right_letter in ['u', 'm', 'r']:
                     self.replace_unknown_value(row, col, 'm')
@@ -502,7 +502,9 @@ class Board:
                         row + 2, col) == 'b') or \
                     ((self.get_letter(row, col - 1) == 'm' and self.get_letter(row, col - 2) == 'l' and
                       self.get_letter(row, col + 1) == 'r') or (self.get_letter(row, col + 1) == 'm' and
-                        self.get_letter(row, col - 1) == 'l' and self.get_letter(row, col + 1) == 'r')):
+                                                                self.get_letter(row,
+                                                                                col - 1) == 'l' and self.get_letter(row,
+                                                                                                                    col + 1) == 'r')):
                 self.reduce_num_of_boats_to_add_with_size_n(4)
         elif val == 'b':
             if self.get_letter(row - 1, col) == 't':
@@ -635,10 +637,10 @@ class Board:
     def add_char_to_print(self, row, col, board_to_print):
         if self.board[row, col] == 'w':
             board_to_print += '.'
-            board_to_print += ' '
+            #board_to_print += ' '
         else:
             board_to_print += self.board[row, col]
-            board_to_print += ' '
+            #board_to_print += ' '
         return board_to_print
 
     def __repr__(self):
@@ -662,19 +664,13 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        print("COLUNA", state.board.num_vals_to_add_col)
+        """    print("COLUNA", state.board.num_vals_to_add_col)
         print("LINHA", state.board.num_vals_to_add_row)
         print("FREE COLUNA", state.board.free_col_counts)
         print("FREE LINHA", state.board.free_row_counts)
         print("ACTIONS:", state.board.biggest_boat_to_add_positions())
-        print("BOATS", state.board.num_boats_to_add)
-        print(state.board)
-        """      
-        print("COLUNA", state.board.num_vals_to_add_col)
-        print("LINHA", state.board.num_vals_to_add_row)
-        print("BOATS TO ADD", state.board.count_boats_to_add())
-        print("BOARD:")
-        state.board.print() """
+        print("BOATS", state.board.num_boats_to_add)"""
+        #print(state.board)
         return state.board.biggest_boat_to_add_positions()
 
     def result(self, state: BimaruState, action):
@@ -705,12 +701,12 @@ if __name__ == "__main__":
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
     board = Board.parse_instance()
-    print(board)
+    # print(board)
     state = BimaruState(board)
     problem = Bimaru(board)
     # Obter o nó solução usando a procura em profundidade:
     goal_node = depth_first_tree_search(problem)
     # Verificar se foi atingida a solução
-    print("Is goal?", problem.goal_test(goal_node.state))
-    print("Solution:")
+    """print("Is goal?", problem.goal_test(goal_node.state))
+    print("Solution:")"""
     print(goal_node.state.board)
