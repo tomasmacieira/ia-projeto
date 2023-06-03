@@ -651,7 +651,8 @@ class Board:
                     board_to_print = self.add_char_to_print(row, col, board_to_print)
                 else:
                     board_to_print = self.add_char_to_print(row, col, board_to_print)
-                    board_to_print += '\n'
+                    if row != self.LEN_ROW - 1:
+                        board_to_print += '\n'
         return board_to_print
 
 
