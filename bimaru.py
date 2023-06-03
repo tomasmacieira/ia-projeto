@@ -146,7 +146,6 @@ class Board:
         for col in range(self.LEN_COLUMN):
             if self.get_letter(row, col) == "None":
                 self.set_letter(row, col, 'w')
-
     def fill_col_with_water(self, col):
         for row in range(self.LEN_ROW):
             if self.get_letter(row, col) == "None":
@@ -222,7 +221,6 @@ class Board:
         return (up_letter == 'w' and down_letter == 'w') or \
             (up_letter == 'w' and row == 9) or \
             (row == 0 and down_letter == 'w')
-
     def is_horizontal_isolated_letter(self, row, col):
         left_letter = self.get_letter(row, col - 1)
         right_letter = self.get_letter(row, col + 1)
@@ -235,7 +233,6 @@ class Board:
 
     def has_adjacent_vertical_vals(self, row, col):
         return self.is_value(row - 1, col) or self.is_value(row + 1, col)
-
     def has_adjacent_horizontal_vals(self, row, col):
         return self.is_value(col - 1, row) or self.is_value(col + 1, row)
 
@@ -316,7 +313,6 @@ class Board:
             letter = self.get_letter(row, col)
             if letter == "None":
                 self.add_val_and_circle_with_water(row, col, 'u')
-
     def fill_col_with_unknowns(self, col):
         # This is does so the method is not called unnecessarily
         self.num_vals_to_add_col[col] = 0
@@ -337,7 +333,6 @@ class Board:
         self.set_letter(row - 1, col + 1, "w")
         self.set_letter(row + 1, col - 1, "w")
         self.set_letter(row + 1, col + 1, "w")
-
     def circle_top_of_boat_with_water(self, row, col):
         self.set_letter(row - 1, col, "w")
         self.set_letter(row - 1, col - 1, "w")
@@ -346,13 +341,11 @@ class Board:
         self.set_letter(row, col + 1, "w")
         self.set_letter(row + 1, col + 1, "w")
         self.set_letter(row + 1, col - 1, "w")
-
     def circle_middle_of_boat_with_water(self, row, col):
         self.set_letter(row - 1, col - 1, "w")
         self.set_letter(row - 1, col + 1, "w")
         self.set_letter(row + 1, col - 1, "w")
         self.set_letter(row + 1, col + 1, "w")
-
     def circle_bottom_of_boat_with_water(self, row, col):
         self.set_letter(row + 1, col, "w")
         self.set_letter(row + 1, col - 1, "w")
@@ -361,7 +354,6 @@ class Board:
         self.set_letter(row, col + 1, "w")
         self.set_letter(row - 1, col + 1, "w")
         self.set_letter(row - 1, col - 1, "w")
-
     def circle_left_of_boat_with_water(self, row, col):
         self.set_letter(row - 1, col, "w")
         self.set_letter(row - 1, col - 1, "w")
@@ -370,7 +362,6 @@ class Board:
         self.set_letter(row + 1, col - 1, "w")
         self.set_letter(row + 1, col, "w")
         self.set_letter(row + 1, col + 1, "w")
-
     def circle_right_of_boat_with_water(self, row, col):
         self.set_letter(row - 1, col, "w")
         self.set_letter(row - 1, col - 1, "w")
@@ -379,7 +370,6 @@ class Board:
         self.set_letter(row + 1, col - 1, "w")
         self.set_letter(row + 1, col, "w")
         self.set_letter(row + 1, col + 1, "w")
-
     def circle_unknown_boat_with_water(self, row, col):
         self.set_letter(row - 1, col - 1, "w")
         self.set_letter(row - 1, col + 1, "w")
@@ -418,12 +408,14 @@ class Board:
         free_col_counts = [10 for _ in range(10)]
         numOfHints = int(sys.stdin.readline())
         hints = []
-        board = np.full((LEN_ROW, LEN_COLUMN), "*")
-
+        board = []
+        for row in range(LEN_ROW):
+            board.append([])
+            for col in range(LEN_COLUMN):
+                board[row].append("*")
         for i in range(numOfHints):
             hint = sys.stdin.readline().split()[1:]
             hints.append(tuple(hint))
-
         for hint in hints:
             row, col, letter = hint
             board[int(row)][int(col)] = letter
@@ -432,15 +424,14 @@ class Board:
             if letter != 'W':
                 num_vals_to_add_row[int(row)] -= 1
                 num_vals_to_add_col[int(col)] -= 1
-
         return Board(board, num_vals_to_add_row, num_vals_to_add_col, free_row_counts, free_col_counts, [], [],
                      LEN_ROW, LEN_COLUMN, False)
 
     def is_board_fully_filled(self) -> bool:
-        for i in self.num_vals_to_add_row:
+        for i in self.free_row_counts:
             if i != 0:
                 return False
-        for i in self.num_vals_to_add_col:
+        for i in self.free_col_counts:
             if i != 0:
                 return False
         return True
@@ -567,7 +558,7 @@ class Board:
         found = False
         if self.has_boats_with_size_n_to_add(4):
             for row in range(self.LEN_ROW):
-                if self.num_vals_to_add_row[row] > 3:
+                if self.num_vals_to_add_row[row] > 0:
                     for col in range(self.LEN_COLUMN - 3):
                         if self.get_letter(row, col) in ['l', 'u', "None"] and \
                                 self.get_letter(row, col + 1) in ['m', 'u', "None"] and \
@@ -577,7 +568,7 @@ class Board:
                             found = True
                             biggest_boat_to_add_pos.append((row, col, '4', 'h'))
             for col in range(self.LEN_COLUMN):
-                if self.num_vals_to_add_col[col] > 3:
+                if self.num_vals_to_add_col[col] > 0:
                     for row in range(self.LEN_ROW - 3):
                         if self.get_letter(row, col) in ['t', 'u', "None"] and \
                                 self.get_letter(row + 1, col) in ['m', 'u', "None"] and \
@@ -589,7 +580,7 @@ class Board:
 
         if not found and self.has_boats_with_size_n_to_add(3):
             for row in range(self.LEN_ROW):
-                if self.num_vals_to_add_row[row] > 2:
+                if self.num_vals_to_add_row[row] > 0:
                     for col in range(self.LEN_COLUMN - 2):
                         if self.get_letter(row, col) in ['l', 'u', "None"] and \
                                 self.get_letter(row, col + 1) in ['m', 'u', "None"] and \
@@ -635,12 +626,12 @@ class Board:
         return biggest_boat_to_add_pos
 
     def add_char_to_print(self, row, col, board_to_print):
-        if self.board[row, col] == 'w':
+        if self.board[row][col] == 'w':
             board_to_print += '.'
-            #board_to_print += ' '
+            # board_to_print += ' '
         else:
-            board_to_print += self.board[row, col]
-            #board_to_print += ' '
+            board_to_print += self.board[row][col]
+            # board_to_print += ' '
         return board_to_print
 
     def __repr__(self):
