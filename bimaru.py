@@ -30,6 +30,7 @@ class BimaruState:
     def __lt__(self, other):
         return self.id < other.id
 
+is_running = False
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
@@ -373,9 +374,12 @@ class Board:
     def fill_col_with_unknowns(self, col):
         # This is done so the method is not called unnecessarily
         self.num_vals_to_add_col[col] = 0
+        is_running = True
         for row in range(self.LEN_ROW):
+            print("A SUBSTITUIR", (row, col))
             if self.get_letter(row, col) == "None":
                 self.add_val_and_circle_with_water(row, col, 'u')
+        is_running = False
 
     def reduce_num_of_boats_to_add(self, size: int):
         self.num_boats_to_add[size - 1] -= 1
