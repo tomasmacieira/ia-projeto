@@ -47,11 +47,10 @@ class Board:
         self.added_boats = added_boats
         self.LEN_ROW = len_row
         self.LEN_COLUMN = len_column
-        # print(self)
         if isCopy:
             self.num_boats_to_add = num_boats_to_add
         else:
-            self.num_boats_to_add = self.count_boats_to_add()
+            #self.num_boats_to_add = self.count_boats_to_add()
             self.process_board(True)
             self.num_boats_to_add = self.count_boats_to_add()
 
@@ -190,7 +189,7 @@ class Board:
         self.board[row][col] = val
         # if letter != 'w':
         #   self.try_to_reduce_num_boats_to_add(row, col, letter)
-        """   print(changed_col)
+        """       print(changed_col)
         print("COLUNA", self.num_vals_to_add_col)
         print("LINHA", self.num_vals_to_add_row)
         print("FREE COLUNA", self.free_col_counts)
@@ -211,13 +210,11 @@ class Board:
                 self.free_col_counts[col] -= 1
                 self.free_row_counts[row] -= 1
                 self.board[row][col] = 'w'
-                """       print("COLUNA", self.num_vals_to_add_col)
+                """     print("COLUNA", self.num_vals_to_add_col)
                 print("LINHA", self.num_vals_to_add_row)
                 print("FREE COLUNA", self.free_col_counts)
                 print("FREE LINHA", self.free_row_counts)
                 print("UNKNOWNS", self.unknown_vals_pos)
-                self.num_boats_to_add = self.count_boats_to_add()
-                print("BOATS TO ADD", self.num_boats_to_add)
                 print(self)"""
                 self.decipher_unknown_vals()
         for water_pos in positions_waters:
@@ -566,8 +563,17 @@ class Board:
                 return self.is_value(row - 1, col) or self.has_adjacent_horizontal_val(row, col) or \
                     self.has_adjacent_diagonal_val(row, col) or self.has_adjacent_horizontal_val(row + 2, col) or \
                     self.is_value(row + 2, col)
-        elif size == '1':
-            return self.has_adjacent_val(row, col)
+
+    def num_vals_needed_to_add(self, row, col, size, direction):
+        counter = 0
+        for i in range(int(size)):
+            if direction == 'h':
+                if self.get_letter(row, col + i) == 'None':
+                    counter += 1
+            elif direction == 'v':
+                if self.get_letter(row + i, col) == "None":
+                    counter += 1
+        return counter
 
     def biggest_boat_to_add_positions(self):
         biggest_boat_to_add_pos = []
@@ -578,7 +584,8 @@ class Board:
                         if self.get_letter(row, col) in ['l', 'u', "None"] and \
                                 self.get_letter(row, col + 1) in ['m', 'u', "None"] and \
                                 self.get_letter(row, col + 2) in ['m', 'u', 'None'] and \
-                                self.get_letter(row, col + 3) in ['r', 'u', 'None'] and not \
+                                self.get_letter(row, col + 3) in ['r', 'u', 'None'] and \
+                                self.num_vals_needed_to_add(row, col, '4', 'h') <= self.num_vals_to_add_row[row] and not \
                                 self.boat_has_invalid_adjacent_val(row, col, '4,', 'h') and not \
                                 self.is_boat_with_size_n(row, col, '4', 'h'):
                             biggest_boat_to_add_pos.append((row, col, '4', 'h'))
@@ -588,7 +595,8 @@ class Board:
                         if self.get_letter(row, col) in ['t', 'u', "None"] and \
                                 self.get_letter(row + 1, col) in ['m', 'u', "None"] and \
                                 self.get_letter(row + 2, col) in ['m', 'u', 'None'] and \
-                                self.get_letter(row + 3, col) in ['b', 'u', 'None'] and not \
+                                self.get_letter(row + 3, col) in ['b', 'u', 'None'] and \
+                                self.num_vals_needed_to_add(row, col, '4', 'v') <= self.num_vals_to_add_col[col] and not \
                                 self.boat_has_invalid_adjacent_val(row, col, '4', 'v') and not \
                                 self.is_boat_with_size_n(row, col, '4', 'v'):
                             biggest_boat_to_add_pos.append((row, col, '4', 'v'))
@@ -599,7 +607,8 @@ class Board:
                     for col in range(self.LEN_COLUMN - 2):
                         if self.get_letter(row, col) in ['l', 'u', "None"] and \
                                 self.get_letter(row, col + 1) in ['m', 'u', "None"] and \
-                                self.get_letter(row, col + 2) in ['r', 'u', 'None'] and not \
+                                self.get_letter(row, col + 2) in ['r', 'u', 'None'] and \
+                                self.num_vals_needed_to_add(row, col, '3', 'h') <= self.num_vals_to_add_row[row] and not \
                                 self.boat_has_invalid_adjacent_val(row, col, '3', 'h') and not \
                                 self.is_boat_with_size_n(row, col, '3', 'h'):
                             biggest_boat_to_add_pos.append((row, col, '3', 'h'))
@@ -608,7 +617,8 @@ class Board:
                     for row in range(self.LEN_ROW - 2):
                         if self.get_letter(row, col) in ['t', 'u', "None"] and \
                                 self.get_letter(row + 1, col) in ['m', 'u', "None"] and \
-                                self.get_letter(row + 2, col) in ['b', 'u', 'None'] and not \
+                                self.get_letter(row + 2, col) in ['b', 'u', 'None'] and \
+                                self.num_vals_needed_to_add(row, col, '3', 'v') <= self.num_vals_to_add_col[col] and not \
                                 self.boat_has_invalid_adjacent_val(row, col, '3', 'v') and not \
                                 self.is_boat_with_size_n(row, col, '3', 'v'):
                             biggest_boat_to_add_pos.append((row, col, '3', 'v'))
@@ -618,7 +628,8 @@ class Board:
                 if self.num_vals_to_add_row[row] > 0 and self.og_num_vals_to_add_row[row] > 1:
                     for col in range(self.LEN_COLUMN - 1):
                         if self.get_letter(row, col) in ['l', 'u', "None"] and \
-                                self.get_letter(row, col + 1) in ['r', 'u', 'None'] and not \
+                                self.get_letter(row, col + 1) in ['r', 'u', 'None'] and \
+                                self.num_vals_needed_to_add(row, col, '2', 'h') <= self.num_vals_to_add_row[row] and not \
                                 self.boat_has_invalid_adjacent_val(row, col, '2', 'h') and not \
                                 self.is_boat_with_size_n(row, col, '2', 'h'):
                             biggest_boat_to_add_pos.append((row, col, '2', 'h'))
@@ -626,7 +637,8 @@ class Board:
                 if self.num_vals_to_add_col[col] > 0 and self.og_num_vals_to_add_col[col] > 1:
                     for row in range(self.LEN_ROW - 1):
                         if self.get_letter(row, col) in ['t', 'u', "None"] and \
-                                self.get_letter(row + 1, col) in ['b', 'u', 'None'] and not \
+                                self.get_letter(row + 1, col) in ['b', 'u', 'None'] and \
+                                self.num_vals_needed_to_add(row, col, '2', 'v') <= self.num_vals_to_add_col[col] and not \
                                 self.boat_has_invalid_adjacent_val(row, col, '2', 'v') and not \
                                 self.is_boat_with_size_n(row, col, '2', 'v'):
                             biggest_boat_to_add_pos.append((row, col, '2', 'v'))
@@ -636,7 +648,7 @@ class Board:
                 if self.num_vals_to_add_row[row] > 0:
                     for col in range(self.LEN_COLUMN):
                         if self.get_letter(row, col) in ['u', "None"] and not \
-                                self.boat_has_invalid_adjacent_val(row, col, '1', 'h'):
+                                self.has_adjacent_val(row, col):
                             # indifferent for h and v
                             biggest_boat_to_add_pos.append((row, col, '1', 'h'))
         return biggest_boat_to_add_pos
@@ -672,7 +684,7 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        """        print("COLUNA", state.board.num_vals_to_add_col)
+        """    print("COLUNA", state.board.num_vals_to_add_col)
         print("LINHA", state.board.num_vals_to_add_row)
         print("FREE COLUNA", state.board.free_col_counts)
         print("FREE LINHA", state.board.free_row_counts)
@@ -724,9 +736,9 @@ if __name__ == "__main__":
                 num_vals_col[col] += 1
     for row in range(10):
         for col in range(10):
-            if goal_node.state.board.is_value(row, col):   
+            if goal_node.state.board.is_value(row, col):
                 num_vals_row[row] += 1"""
-    """ print("Numero de valores em linhas:", num_vals_row)
+    """   print("Numero de valores em linhas:", num_vals_row)
     print("Numero de valores em colunas:", num_vals_col)
     print("Numero de barcos", goal_node.state.board.num_boats_to_add)
     print("Is goal?", problem.goal_test(goal_node.state))
