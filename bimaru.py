@@ -728,7 +728,7 @@ if __name__ == "__main__":
     # Obter o nó solução usando a procura em profundidade:
     goal_node = depth_first_tree_search(problem)
     # Verificar se foi atingida a solução
-    """   num_vals_row = [0 for _ in range(10)]
+    num_vals_row = [0 for _ in range(10)]
     num_vals_col = [0 for _ in range(10)]
     for col in range(10):
         for row in range(10):
@@ -737,10 +737,10 @@ if __name__ == "__main__":
     for row in range(10):
         for col in range(10):
             if goal_node.state.board.is_value(row, col):
-                num_vals_row[row] += 1"""
-    """   print("Numero de valores em linhas:", num_vals_row)
+                num_vals_row[row] += 1
+    print("Numero de valores em linhas:", num_vals_row)
     print("Numero de valores em colunas:", num_vals_col)
     print("Numero de barcos", goal_node.state.board.num_boats_to_add)
     print("Is goal?", problem.goal_test(goal_node.state))
-    print("Solution:")"""
+    print("Solution:")
     print(goal_node.state.board)
