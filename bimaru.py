@@ -6,6 +6,7 @@
 # 00000 Pedro Almeida
 # 00000 Tomas Macieira
 
+
 import sys
 from search import (
     Problem,
@@ -13,6 +14,8 @@ from search import (
     depth_first_tree_search,
 )
 import numpy as np
+
+on_going_fill = False
 
 
 class BimaruState:
@@ -29,7 +32,6 @@ class BimaruState:
 
 class Board:
     """Representação interna de um tabuleiro de Bimaru."""
-
     def __init__(self, board, num_vals_to_add_row, num_vals_to_add_col, og_num_vals_to_add_row, og_num_vals_to_add_col,
                  free_row_counts, free_col_counts, num_boats_to_add, unknown_vals_pos, added_boats, len_row, len_column,
                  isCopy):
@@ -47,21 +49,11 @@ class Board:
         if isCopy:
             self.num_boats_to_add = num_boats_to_add
         else:
-            # self.num_boats_to_add = self.count_boats_to_add()
             self.process_board(True)
             self.num_boats_to_add = self.count_boats_to_add()
 
     @staticmethod
     def parse_instance():
-        """Lê o test do standard input (stdin) que é passado como argumento
-        e retorna uma instância da classe Board.
-
-        Por exemplo:
-            $ python3 bimaru.py < input_T01
-
-            > from sys import stdin
-            > line = stdin.readline().split()
-        """
         LEN_ROW = 10
         LEN_COLUMN = 10
         num_vals_to_add_row = [int(num) for num in sys.stdin.readline().split()[1:]]
@@ -176,7 +168,6 @@ class Board:
             self.process_board(False)
 
     def set_value(self, row, col, val):
-        """Adiciona uma letra à board numa determinada posição caso já não exista uma letra nessa posição"""
         changed_row = False
         changed_col = False
         if val == 'u':
@@ -191,16 +182,6 @@ class Board:
                 self.num_vals_to_add_col[col] -= 1
                 changed_col = True
         self.board[row][col] = val
-        # if letter != 'w':
-        #   self.try_to_reduce_num_boats_to_add(row, col, letter)
-        """       print(changed_col)
-        print("COLUNA", self.num_vals_to_add_col)
-        print("LINHA", self.num_vals_to_add_row)
-        print("FREE COLUNA", self.free_col_counts)
-        print("FREE LINHA", self.free_row_counts)
-        print("UNKNOWNS", self.unknown_vals_pos)
-        print("BOATS TO ADD", self.num_boats_to_add)
-        print(self)"""
         self.decipher_unknown_vals()
         if self.num_vals_to_add_row[row] == 0 and changed_row:
             self.fill_row_with_water(row)
@@ -214,26 +195,19 @@ class Board:
                 self.free_col_counts[col] -= 1
                 self.free_row_counts[row] -= 1
                 self.board[row][col] = 'w'
-                """     print("COLUNA", self.num_vals_to_add_col)
-                print("LINHA", self.num_vals_to_add_row)
-                print("FREE COLUNA", self.free_col_counts)
-                print("FREE LINHA", self.free_row_counts)
-                print("UNKNOWNS", self.unknown_vals_pos)
-                print(self)"""
                 self.decipher_unknown_vals()
-        for water_pos in positions_waters:
-            row, col = water_pos
-            if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN:
-                if self.num_vals_to_add_row[row] != 0 and \
-                        self.num_vals_to_add_row[row] == self.free_row_counts[row]:
-                    self.fill_row_with_unknowns(row)
-                if self.num_vals_to_add_col[col] != 0 and \
-                        self.num_vals_to_add_col[col] == self.free_col_counts[col]:
-                    self.fill_col_with_unknowns(col)
+        if not on_going_fill:
+            for water_pos in positions_waters:
+                row, col = water_pos
+                if 0 <= row < self.LEN_ROW and 0 <= col < self.LEN_COLUMN:
+                    if self.num_vals_to_add_row[row] != 0 and \
+                            self.num_vals_to_add_row[row] == self.free_row_counts[row]:
+                        self.fill_row_with_unknowns(row)
+                    if self.num_vals_to_add_col[col] != 0 and \
+                            self.num_vals_to_add_col[col] == self.free_col_counts[col]:
+                        self.fill_col_with_unknowns(col)
 
     def fill_sections_with_water(self):
-        """Recebe um board, nas linhas e/ou colunas onde o número de
-        barcos restantes for zero, a função preenche com água"""
         for row in range(self.LEN_ROW):
             if self.num_vals_to_add_row[row] == 0:
                 self.fill_row_with_water(row)
@@ -360,16 +334,22 @@ class Board:
     def fill_row_with_unknowns(self, row):
         # This is done so the method is not called unnecessarily
         self.num_vals_to_add_row[row] = 0
+        global on_going_fill
+        on_going_fill = True
         for col in range(self.LEN_COLUMN):
             if self.get_letter(row, col) == "None":
                 self.add_val_and_circle_with_water(row, col, 'u')
+        on_going_fill = False
 
     def fill_col_with_unknowns(self, col):
         # This is done so the method is not called unnecessarily
         self.num_vals_to_add_col[col] = 0
+        global on_going_fill
+        on_going_fill = True
         for row in range(self.LEN_ROW):
             if self.get_letter(row, col) == "None":
                 self.add_val_and_circle_with_water(row, col, 'u')
+        on_going_fill = False
 
     def circle_single_boat_with_water(self, row, col):
         waters_pos = [(row - 1, col), (row + 1, col), (row, col - 1), (row, col + 1), (row - 1, col - 1),
@@ -392,12 +372,12 @@ class Board:
 
     def circle_left_of_boat_with_water(self, row, col):
         waters_pos = [(row - 1, col), (row - 1, col - 1), (row - 1, col + 1), (row, col - 1), (row + 1, col),
-                      (row + 1, col), (row + 1, col + 1)]
+                      (row + 1, col - 1), (row + 1, col + 1)]
         self.set_waters(waters_pos)
 
     def circle_right_of_boat_with_water(self, row, col):
-        waters_pos = [(row - 1, col), (row - 1, col - 1), (row - 1, col + 1), (row, col + 1), (row + 1, col - 1),
-                      (row + 1, col), (row + 1, col + 1)]
+        waters_pos = [(row - 1, col), (row - 1, col - 1), (row - 1, col + 1), (row, col + 1), (row + 1, col),
+                      (row + 1, col - 1), (row + 1, col + 1)]
         self.set_waters(waters_pos)
 
     def circle_unknown_boat_with_water(self, row, col):
@@ -405,7 +385,6 @@ class Board:
         self.set_waters(waters_pos)
 
     def copy(self):
-        """Creates a copy of the Board."""
         new_board = np.copy(self.board)
         new_num_vals_to_add_row = self.num_vals_to_add_row.copy()
         new_num_vals_to_add_col = self.num_vals_to_add_col.copy()
@@ -502,17 +481,6 @@ class Board:
                 return True
         return False
 
-    """    def num_letters_to_add_to_form_boat(self, row, col, direction):
-            counter = 0
-            for i in range(4):
-                if direction == 'h':
-                    if self.get_letter(row, col + i) in ['u', 'None']:
-                        counter += 1
-                elif direction == 'v':
-                    if self.get_letter(row + 1, col) in ['u', 'None']:
-                        counter += 1
-    """
-
     def is_value(self, row, col):
         return self.get_letter(row, col) != 'w' and self.get_letter(row, col) != "None"
 
@@ -529,13 +497,6 @@ class Board:
     def has_adjacent_val(self, row, col):
         return self.has_adjacent_horizontal_val(row, col) or self.has_adjacent_vertical_val(row, col) or \
             self.has_adjacent_diagonal_val(row, col)
-
-    def all_boats_are_valid(self):
-        for boat in self.added_boats:
-            row, col, size, direction = boat
-            if self.boat_has_invalid_adjacent_val(row, col, size, direction):
-                return False
-        return True
 
     def boat_has_invalid_adjacent_val(self, row, col, size, direction):
         if size == '4':
@@ -658,10 +619,8 @@ class Board:
     def add_char_to_print(self, row, col, board_to_print):
         if self.board[row][col] == 'w':
             board_to_print += '.'
-            # board_to_print += ' '
         else:
             board_to_print += self.board[row][col]
-            # board_to_print += ' '
         return board_to_print
 
     def __repr__(self):
@@ -686,13 +645,6 @@ class Bimaru(Problem):
     def actions(self, state: BimaruState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        """    print("COLUNA", state.board.num_vals_to_add_col)
-        print("LINHA", state.board.num_vals_to_add_row)
-        print("FREE COLUNA", state.board.free_col_counts)
-        print("FREE LINHA", state.board.free_row_counts)
-        print("ACTIONS:", state.board.biggest_boat_to_add_positions())
-        print("BOATS", state.board.num_boats_to_add)
-        print(state.board)"""
         return state.board.biggest_boat_to_add_positions()
 
     def result(self, state: BimaruState, action):
@@ -700,50 +652,27 @@ class Bimaru(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        # print(state.state_id, action)
         new_board = state.board.copy()
         new_board.apply_action(action)
-        # print("NEW BOARD:")
-        # new_board.print()
         return BimaruState(new_board)
 
     def goal_test(self, state: BimaruState) -> bool:
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
-        estão preenchidas de acordo com as regras do problema."""
-
+        estão preenchidas de acordo com as regras do problema."""   
         state.board.num_boats_to_add = state.board.count_boats_to_add()
         return state.board.is_board_fully_filled() and state.board.num_boats_to_add == [0, 0, 0, 0] and \
-            len(state.board.unknown_vals_pos) == 0 and state.board.all_boats_are_valid()
+            len(state.board.unknown_vals_pos) == 0
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        # TODO
 
 
 if __name__ == "__main__":
     # Ler grelha do ficheiro 'i1.txt' (Figura 1):
     # $ python3 bimaru.py < i1.txt
     board = Board.parse_instance()
-    # print(board)
     state = BimaruState(board)
     problem = Bimaru(board)
-    # Obter o nó solução usando a procura em profundidade:
     goal_node = depth_first_tree_search(problem)
-    # Verificar se foi atingida a solução
-    """    num_vals_row = [0 for _ in range(10)]
-    num_vals_col = [0 for _ in range(10)]
-    for col in range(10):
-        for row in range(10):
-            if goal_node.state.board.is_value(row, col):
-                num_vals_col[col] += 1
-    for row in range(10):
-        for col in range(10):
-            if goal_node.state.board.is_value(row, col):
-                num_vals_row[row] += 1
-    print("Numero de valores em linhas:", num_vals_row)
-    print("Numero de valores em colunas:", num_vals_col)
-    print("Numero de barcos", goal_node.state.board.num_boats_to_add)
-    print("Is goal?", problem.goal_test(goal_node.state))
-    print("Solution:")"""
     print(goal_node.state.board)
