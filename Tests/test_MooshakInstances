@@ -1,4 +1,4 @@
-ximport subprocess
+import subprocess
 
 def run_test_case(test_case):
     test_input = f"MooshakInstances/{test_case}.in"
