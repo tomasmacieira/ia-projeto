@@ -29,7 +29,8 @@ python3 bimaru.py < <instance_file>
 
 Alternatively, you can run the tester script by executing:
 ```bash
-python3 Tests/Tester/tester.py
+cd Tests/Tester
+python3 tester.py
 ```
 Which will execute all the instances in the `tests` folder and put the outputs in the `my_outputs` folder.
 
